@@ -1688,7 +1688,7 @@ static int scan_pdt(void)
 	fwu->f34_fd.query_base_addr = add_buf[0];
 	fwu->f34_fd.ctrl_base_addr = add_buf[2];
 	fwu->f34_fd.data_base_addr = add_buf[3];
-	if (add_buf[4]>>5 && 0x2)
+	if (add_buf[4]>>5 & 0x2)
 		fwu->bl_version = BL_V7;
 	TPD_ERR("F34_query_base_addr[0x%x],F34_ctrl_base_addr[0x%x],F34_data_base_addr[0x%x]\n",\
 	add_buf[0],add_buf[2],add_buf[3]);
