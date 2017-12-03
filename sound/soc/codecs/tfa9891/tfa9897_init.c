@@ -107,7 +107,7 @@ static enum Tfa98xx_Error tfa9897_tfa_dsp_write_tables(Tfa98xx_handle_t dev_idx,
 	enum Tfa98xx_Error error;
 
 	/* Not used for max1! */
-	sample_rate=sample_rate;
+	sample_rate = (int)sample_rate;
 
 	error = tfa9897_dsp_write_vsfwdelay_table(dev_idx);
 	if (error == Tfa98xx_Error_Ok) {
