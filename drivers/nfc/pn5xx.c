@@ -320,7 +320,7 @@ static void p61_access_unlock(struct pn544_dev *pn544_dev)
     pr_info("%s: Exit\n", __func__);
 }
 
-static int signal_handler(p61_access_state_t state, long nfc_pid)
+static int signal_handler(unsigned long state, long nfc_pid)
 {
     struct siginfo sinfo;
     pid_t pid;
