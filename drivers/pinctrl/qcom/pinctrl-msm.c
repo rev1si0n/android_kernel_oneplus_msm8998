@@ -892,7 +892,6 @@ static void msm_gpio_irq_handler(struct irq_desc *desc)
 					"soc:fpc_fpc1020", 16) != NULL ||
 					strnstr(irq_name, "gf_fp", 6) != NULL) {
 					fp_irq_cnt = true;
-					c0_cpufreq_limit_queue();
 				}
 				set_resume_wakeup_flag(irq_pin);
 

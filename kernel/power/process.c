@@ -202,7 +202,6 @@ void thaw_fingerprintd(void)
        pm_nosig_freezing = false;
        if (fp_irq_cnt) {
                fp_irq_cnt = false;
-               c1_cpufreq_limit_queue();
        }
        read_lock(&tasklist_lock);
        for_each_process_thread(g, p) {
