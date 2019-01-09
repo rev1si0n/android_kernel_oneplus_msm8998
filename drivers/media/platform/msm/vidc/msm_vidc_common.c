@@ -1493,7 +1493,7 @@ void validate_output_buffers(struct msm_vidc_inst *inst)
 	}
 	mutex_lock(&inst->outputbufs.lock);
 	list_for_each_entry(binfo, &inst->outputbufs.list, list) {
-		if (binfo->buffer_ownership != DRIVER) {
+		if (binfo && binfo->buffer_ownership != DRIVER) {
 			dprintk(VIDC_DBG,
 				"This buffer is with FW %pa\n",
 				&binfo->handle->device_addr);
@@ -3211,8 +3211,7 @@ static int set_output_buffers(struct msm_vidc_inst *inst,
 			if (!handle) {
 				dprintk(VIDC_ERR,
 					"Failed to allocate output memory\n");
-				rc = -ENOMEM;
-				goto err_no_mem;
+				return -ENOMEM;
 			}
 			rc = msm_comm_smem_cache_operations(inst,
 					handle, SMEM_CACHE_CLEAN, -1);
@@ -3264,10 +3263,9 @@ static int set_output_buffers(struct msm_vidc_inst *inst,
 	}
 	return rc;
 fail_set_buffers:
-	msm_comm_smem_free(inst, handle);
-err_no_mem:
 	kfree(binfo);
 fail_kzalloc:
+	msm_comm_smem_free(inst, handle);
 	return rc;
 }
 
