@@ -189,8 +189,13 @@ switch_dev_get_devtree_pdata(struct device *dev)
 		if (data < 600 || data > 603)\
 			return t;\
 		keyCode_slider_##WHICH = data;\
-		if (current_mode == 1)\
-			send_input(keyCode_slider_##WHICH);\
+		if (current_mode == 1) {\
+			send_input(keyCode_slider_top);\
+		} else if (current_mode == 2) {\
+			send_input(keyCode_slider_middle);\
+		} else if (current_mode == 3) {\
+			send_input(keyCode_slider_bottom);\
+        }\
 		return t;\
 	}\
 	static int keyCode_##WHICH##_open(struct inode *inode, struct file *file)\
