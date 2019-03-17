@@ -9058,7 +9058,7 @@ static int msm_init_wsa_dev(struct platform_device *pdev,
 		goto err_dt;
 	}
 	if (wsa_max_devs == 0) {
-		dev_warn(&pdev->dev,
+		dev_dbg(&pdev->dev,
 			 "%s: Max WSA devices is 0 for this target?\n",
 			 __func__);
 		goto err_dt;
