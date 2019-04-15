@@ -4241,7 +4241,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	struct wma_vdev_start_req req;
 	void *peer = NULL;
 	struct wma_target_req *msg;
-	uint8_t vdev_id, peer_id;
+	uint8_t vdev_id = 0, peer_id;
 	QDF_STATUS status;
 	tSetBssKeyParams key_info;
 	struct policy_mgr_hw_mode_params hw_mode = {0};

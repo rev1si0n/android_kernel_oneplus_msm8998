@@ -1623,7 +1623,7 @@ static int __wlan_hdd_cfg80211_handle_tsf_cmd(struct wiphy *wiphy,
 	struct nlattr *tb_vendor[QCA_WLAN_VENDOR_ATTR_TSF_MAX + 1];
 	int status, ret;
 	struct sk_buff *reply_skb;
-	uint32_t tsf_op_resp[3], tsf_cmd;
+	uint32_t tsf_op_resp[3] = { 0, }, tsf_cmd;
 
 	hdd_enter_dev(wdev->netdev);
 
