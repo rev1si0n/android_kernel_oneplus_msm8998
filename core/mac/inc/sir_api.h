@@ -200,6 +200,20 @@ struct rsn_caps {
 	uint16_t Reserved:8;
 };
 
+/**
+ * struct wlan_mlme_chain_cfg - Chain info related structure
+ * @max_tx_chains_2g: max tx chains supported in 2.4ghz band
+ * @max_rx_chains_2g: max rx chains supported in 2.4ghz band
+ * @max_tx_chains_5g: max tx chains supported in 5ghz band
+ * @max_rx_chains_5g: max rx chains supported in 5ghz band
+ */
+struct wlan_mlme_chain_cfg {
+	uint8_t max_tx_chains_2g;
+	uint8_t max_rx_chains_2g;
+	uint8_t max_tx_chains_5g;
+	uint8_t max_rx_chains_5g;
+};
+
 /* / Result codes Firmware return to Host SW */
 typedef enum eSirResultCodes {
 	eSIR_SME_SUCCESS,
@@ -1228,6 +1242,8 @@ typedef struct sSirSmeAssocInd {
 	uint8_t ecsa_capable;
 	tDot11fIEHTCaps HTCaps;
 	tDot11fIEVHTCaps VHTCaps;
+	bool he_caps_present;
+	tSirMacCapabilityInfo capability_info;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 /* / Definition for Association confirm */
@@ -2923,6 +2939,7 @@ typedef struct sSirRoamOffloadScanReq {
 	/* bss load triggered roam related params */
 	bool bss_load_trig_enabled;
 	struct wmi_bss_load_config bss_load_config;
+	bool roaming_scan_policy;
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 
 typedef struct sSirRoamOffloadScanRsp {
@@ -4923,9 +4940,9 @@ struct sir_wifi_peer_signal_stats {
 	/* Background noise */
 	int32_t nf[WIFI_MAX_CHAINS];
 
-	int32_t per_ant_rx_mpdus[WIFI_MAX_CHAINS];
-	int32_t per_ant_tx_mpdus[WIFI_MAX_CHAINS];
-	int32_t num_chain;
+	uint32_t per_ant_rx_mpdus[WIFI_MAX_CHAINS];
+	uint32_t per_ant_tx_mpdus[WIFI_MAX_CHAINS];
+	uint32_t num_chain;
 };
 
 #define WIFI_VDEV_NUM           4
@@ -7025,12 +7042,14 @@ struct sir_rssi_disallow_lst {
  * struct chain_rssi_result - chain rssi result
  * num_chains_valid: valid chain num
  * @chain_rssi: chain rssi result as dBm unit
+ * @chain_evm: error vector magnitude
  * @ant_id: antenna id
  */
 #define CHAIN_MAX_NUM 8
 struct chain_rssi_result {
 	uint32_t num_chains_valid;
 	uint32_t chain_rssi[CHAIN_MAX_NUM];
+	int32_t chain_evm[CHAIN_MAX_NUM];
 	uint32_t ant_id[CHAIN_MAX_NUM];
 };
 
@@ -7115,4 +7134,15 @@ struct set_pcl_req {
 	enum band_info band;
 };
 
+#ifdef WLAN_MWS_INFO_DEBUGFS
+/**
+ * struct sir_get_mws_coex_info - Get MWS coex info
+ * @vdev_id: vdev id
+ * @cmd_id: wmi mws-coex command IDs
+ */
+struct sir_get_mws_coex_info {
+	uint32_t vdev_id;
+	uint32_t cmd_id;
+};
+#endif /* WLAN_MWS_INFO_DEBUGFS */
 #endif /* __SIR_API_H */

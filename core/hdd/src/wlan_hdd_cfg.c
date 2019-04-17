@@ -3371,6 +3371,34 @@ struct reg_table_entry g_registry_table[] = {
 		     CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MIN,
 		     CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MAX),
 
+	REG_VARIABLE(CFG_STA_SCAN_BURST_DURATION_VAL, WLAN_PARAM_Integer,
+		     struct hdd_config, sta_scan_burst_duration,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_STA_SCAN_BURST_DURATION_VAL_DEFAULT,
+		     CFG_STA_SCAN_BURST_DURATION_VAL_MIN,
+		     CFG_STA_SCAN_BURST_DURATION_VAL_MAX),
+
+	REG_VARIABLE(CFG_P2P_SCAN_BURST_DURATION_VAL, WLAN_PARAM_Integer,
+		     struct hdd_config, p2p_scan_burst_duration,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_P2P_SCAN_BURST_DURATION_VAL_DEFAULT,
+		     CFG_P2P_SCAN_BURST_DURATION_VAL_MIN,
+		     CFG_P2P_SCAN_BURST_DURATION_VAL_MAX),
+
+	REG_VARIABLE(CFG_GO_SCAN_BURST_DURATION_VAL, WLAN_PARAM_Integer,
+		     struct hdd_config, go_scan_burst_duration,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_GO_SCAN_BURST_DURATION_VAL_DEFAULT,
+		     CFG_GO_SCAN_BURST_DURATION_VAL_MIN,
+		     CFG_GO_SCAN_BURST_DURATION_VAL_MAX),
+
+	REG_VARIABLE(CFG_AP_SCAN_BURST_DURATION_VAL, WLAN_PARAM_Integer,
+		     struct hdd_config, ap_scan_burst_duration,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_AP_SCAN_BURST_DURATION_VAL_DEFAULT,
+		     CFG_AP_SCAN_BURST_DURATION_VAL_MIN,
+		     CFG_AP_SCAN_BURST_DURATION_VAL_MAX),
+
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 	REG_VARIABLE(CFG_SAP_MCC_CHANNEL_AVOIDANCE_NAME,
 		     WLAN_PARAM_Integer,
@@ -3981,6 +4009,13 @@ struct reg_table_entry g_registry_table[] = {
 		CFG_ROAM_SCAN_TRIGGER_REASON_BITMASK_DEFAULT,
 		CFG_ROAM_SCAN_TRIGGER_REASON_BITMASK_MIN,
 		CFG_ROAM_SCAN_TRIGGER_REASON_BITMASK_MAX),
+
+	REG_VARIABLE(CFG_ROAM_SCAN_SCAN_POLICY_NAME, WLAN_PARAM_Integer,
+		     struct hdd_config, roaming_scan_policy,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_ROAM_SCAN_SCAN_POLICY_DEFAULT,
+		     CFG_ROAM_SCAN_SCAN_POLICY_MIN,
+		     CFG_ROAM_SCAN_SCAN_POLICY_MAX),
 
 	REG_VARIABLE(CFG_ENABLE_FATAL_EVENT_TRIGGER, WLAN_PARAM_Integer,
 			struct hdd_config, enable_fatal_event,
@@ -5759,6 +5794,16 @@ struct reg_table_entry g_registry_table[] = {
 		     CFG_SET_BT_INTERFERENCE_HIGH_UL_DEFAULT,
 		     CFG_SET_BT_INTERFERENCE_HIGH_UL_MIN,
 		     CFG_SET_BT_INTERFERENCE_HIGH_UL_MAX),
+
+#ifdef FEATURE_MPTA_HELPER
+	REG_VARIABLE(CFG_SET_MPTA_HELPER_ENABLE_NAME, WLAN_PARAM_Integer,
+		     struct hdd_config, set_mpta_helper_enable,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_SET_MPTA_HELPER_ENABLE_DEFAULT,
+		     CFG_SET_MPTA_HELPER_ENABLE_MIN,
+		     CFG_SET_MPTA_HELPER_ENABLE_MAX),
+#endif
+
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	REG_VARIABLE(CFG_ROAM_PREAUTH_RETRY_COUNT_NAME,
 		     WLAN_PARAM_Integer,
@@ -7532,6 +7577,9 @@ void hdd_cfg_print(struct hdd_context *hdd_ctx)
 	hdd_debug("Name = [%s] Value = [%u]",
 		CFG_ROAM_SCAN_TRIGGER_REASON_BITMASK_NAME,
 		hdd_ctx->config->roam_trigger_reason_bitmask);
+	hdd_debug("Name = [%s] Value = [%u]",
+		  CFG_ROAM_SCAN_SCAN_POLICY_NAME,
+		  hdd_ctx->config->roaming_scan_policy);
 	hdd_debug("Name = [%s] Value = [%u]",
 		CFG_MIN_REST_TIME_NAME,
 		hdd_ctx->config->min_rest_time_conc);
@@ -9579,6 +9627,8 @@ QDF_STATUS hdd_set_sme_config(struct hdd_context *hdd_ctx)
 		hdd_ctx->config->min_delay_btw_roam_scans;
 	smeConfig->csrConfig.roam_trigger_reason_bitmask =
 		hdd_ctx->config->roam_trigger_reason_bitmask;
+	smeConfig->csrConfig.roaming_scan_policy =
+		hdd_ctx->config->roaming_scan_policy;
 	smeConfig->csrConfig.obss_width_interval =
 			hdd_ctx->config->obss_width_trigger_interval;
 	smeConfig->csrConfig.obss_active_dwelltime =

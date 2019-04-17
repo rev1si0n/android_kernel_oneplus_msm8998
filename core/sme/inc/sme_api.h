@@ -42,6 +42,7 @@
 #include "sir_types.h"
 #include "scheduler_api.h"
 #include "wlan_serialization_legacy_api.h"
+#include "wmi_unified.h"
 
 /*--------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -355,7 +356,7 @@ QDF_STATUS sme_get_soft_ap_domain(tHalHandle hHal,
 QDF_STATUS sme_hdd_ready_ind(tHalHandle hHal);
 /**
  * sme_ser_cmd_callback() - callback from serialization module
- * @buf: serialization command buffer
+ * @cmd: serialization command
  * @reason: reason why serialization module has given this callback
  *
  * Serialization module will give callback to SME for why it triggered
@@ -363,7 +364,7 @@ QDF_STATUS sme_hdd_ready_ind(tHalHandle hHal);
  *
  * Return: QDF_STATUS_SUCCESS
  */
-QDF_STATUS sme_ser_cmd_callback(void *buf,
+QDF_STATUS sme_ser_cmd_callback(struct wlan_serialization_command *cmd,
 				enum wlan_serialization_cb_reason reason);
 
 /**
@@ -684,6 +685,20 @@ QDF_STATUS sme_configure_app_type2_params(tHalHandle hHal,
 int8_t sme_get_infra_session_id(tHalHandle hHal);
 uint8_t sme_get_infra_operation_channel(tHalHandle hHal, uint8_t sessionId);
 uint8_t sme_get_concurrent_operation_channel(tHalHandle hHal);
+/**
+ * sme_get_beaconing_concurrent_operation_channel() - To get concurrent
+ * operating channel of beaconing interface
+ * @hal: Pointer to hal context
+ * @vdev_id_to_skip: channel of which vdev id to skip
+ *
+ * This routine will return operating channel of active AP/GO channel
+ * and will skip the channel of vdev_id_to_skip.
+ * If other no reqested mode is active it will return 0
+ *
+ * Return: uint8_t
+ */
+uint8_t sme_get_beaconing_concurrent_operation_channel(tHalHandle hal,
+						       uint8_t vdev_id_to_skip);
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 uint16_t sme_check_concurrent_channel_overlap(tHalHandle hHal, uint16_t sap_ch,
 		eCsrPhyMode sapPhyMode,
@@ -2544,4 +2559,23 @@ sme_get_roam_scan_stats(tHalHandle hal, roam_scan_stats_cb cb, void *context,
 QDF_STATUS sme_update_hidden_ssid_status_cb(mac_handle_t mac_handle,
 					    hidden_ssid_cb cb);
 
+#ifdef WLAN_MWS_INFO_DEBUGFS
+/**
+ * sme_get_mws_coex_info() - SME API to get the coex information
+ * @mac_handle: mac handler
+ * @vdev_id: Vdev_id
+ * @cmd_id: enum mws_coex_cmdid which information is needed.
+ * @callback_fn: Callback function
+ * @context: callback context
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+sme_get_mws_coex_info(mac_handle_t mac_handle, uint32_t vdev_id,
+		      uint32_t cmd_id, void (*callback_fn)(void *coex_info_data,
+							   void *context,
+							   wmi_mws_coex_cmd_id
+							   cmd_id),
+		      void *context);
+#endif
 #endif /* #if !defined( __SME_API_H ) */

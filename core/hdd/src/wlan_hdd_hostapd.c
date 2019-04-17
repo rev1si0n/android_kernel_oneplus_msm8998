@@ -107,6 +107,13 @@
 #define SAP_24GHZ_CH_COUNT (14)
 #define ACS_SCAN_EXPIRY_TIMEOUT_S 4
 
+/* Defines the BIT position of HT caps is support mode field of stainfo */
+#define HDD_HT_CAPS_PRESENT 0
+/* Defines the BIT position of VHT caps is support mode field of stainfo */
+#define HDD_VHT_CAPS_PRESENT 1
+/* Defines the BIT position of HE caps is support mode field of stainfo */
+#define HDD_HE_CAPS_PRESENT 2
+
 /*
  * 11B, 11G Rate table include Basic rate and Extended rate
  * The IDX field is the rate index
@@ -1460,6 +1467,8 @@ static void hdd_fill_station_info(struct hdd_adapter *adapter,
 		return;
 	}
 
+	qdf_mem_copy(&stainfo->capability, &event->capability_info,
+		     sizeof(uint16_t));
 	stainfo->freq = cds_chan_to_freq(event->chan_info.chan_id);
 	stainfo->sta_type = event->staType;
 	stainfo->dot11_mode =
@@ -1494,11 +1503,17 @@ static void hdd_fill_station_info(struct hdd_adapter *adapter,
 	if (event->vht_caps.present) {
 		stainfo->vht_present = true;
 		hdd_copy_vht_caps(&stainfo->vht_caps, &event->vht_caps);
+		stainfo->support_mode |=
+				(stainfo->vht_present << HDD_VHT_CAPS_PRESENT);
 	}
 	if (event->ht_caps.present) {
 		stainfo->ht_present = true;
 		hdd_copy_ht_caps(&stainfo->ht_caps, &event->ht_caps);
+		stainfo->support_mode |=
+				(stainfo->ht_present << HDD_HT_CAPS_PRESENT);
 	}
+	stainfo->support_mode |=
+			(event->he_caps_present << HDD_HE_CAPS_PRESENT);
 
 	/* Initialize DHCP info */
 	stainfo->dhcp_phase = DHCP_PHASE_ACK;
@@ -1702,6 +1717,7 @@ QDF_STATUS hdd_hostapd_sap_event_cb(tpSap_Event pSapEvent,
 	struct hdd_station_info *stainfo, *cache_stainfo;
 	mac_handle_t mac_handle;
 	tsap_config_t *sap_config;
+	struct wlan_objmgr_vdev *vdev;
 
 	dev = context;
 	if (!dev) {
@@ -2258,13 +2274,19 @@ QDF_STATUS hdd_hostapd_sap_event_cb(tpSap_Event pSapEvent,
 			}
 			qdf_mem_free(sta_info);
 		}
+
+		vdev = hdd_objmgr_get_vdev(adapter);
 		/* Lets abort scan to ensure smooth authentication for client */
-		if (ucfg_scan_get_vdev_status(adapter->vdev) !=
-				SCAN_NOT_IN_PROGRESS) {
+		if (vdev &&
+		    ucfg_scan_get_vdev_status(vdev) != SCAN_NOT_IN_PROGRESS) {
 			wlan_abort_scan(hdd_ctx->pdev, INVAL_PDEV_ID,
 					adapter->session_id, INVALID_SCAN_ID,
 					false);
 		}
+
+		if (vdev)
+			hdd_objmgr_put_vdev(vdev);
+
 		if (adapter->device_mode == QDF_P2P_GO_MODE) {
 			/* send peer status indication to oem app */
 			hdd_send_peer_status_ind_to_app(

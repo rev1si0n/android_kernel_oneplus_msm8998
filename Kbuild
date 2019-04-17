@@ -76,6 +76,9 @@ HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_debugfs_csr.o
 HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_debugfs_connect.o
 HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_debugfs_offload.o
 HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_debugfs_roam.o
+ifeq ($(CONFIG_WLAN_MWS_INFO_DEBUGFS), y)
+HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_debugfs_coex.o
+endif
 endif
 
 ifeq ($(CONFIG_WLAN_CONV_SPECTRAL_ENABLE),y)
@@ -170,6 +173,13 @@ ifeq ($(CONFIG_WLAN_SYSFS), y)
 HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_sysfs.o
 endif
 
+ifeq ($(CONFIG_QCACLD_FEATURE_COEX_CONFIG), y)
+HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_coex_config.o
+endif
+
+ifeq ($(CONFIG_QCACLD_FEATURE_MPTA_HELPER), y)
+HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_mpta_helper.o
+endif
 ########### HOST DIAG LOG ###########
 HOST_DIAG_LOG_DIR :=	$(WLAN_COMMON_ROOT)/utils/host_diag_log
 
@@ -1327,6 +1337,9 @@ endif
 ifeq ($(CONFIG_WLAN_FEATURE_TWT), y)
 WMA_OBJS +=	$(WMA_SRC_DIR)/wma_twt.o
 endif
+ifeq ($(CONFIG_WLAN_MWS_INFO_DEBUGFS), y)
+WMA_OBJS +=	$(WMA_SRC_DIR)/wma_coex.o
+endif
 ############## PLD ##########
 PLD_DIR := core/pld
 PLD_INC_DIR := $(PLD_DIR)/inc
@@ -1702,6 +1715,8 @@ cppflags-$(CONFIG_QCACLD_WLAN_LFR2) += -DWLAN_FEATURE_HOST_ROAM
 
 cppflags-$(CONFIG_WLAN_POWER_DEBUGFS) += -DWLAN_POWER_DEBUGFS
 
+cppflags-$(CONFIG_WLAN_MWS_INFO_DEBUGFS) += -DWLAN_MWS_INFO_DEBUGFS
+
 # Enable object manager reference count debug infrastructure
 cppflags-$(CONFIG_WLAN_OBJMGR_DEBUG) += -DWLAN_OBJMGR_DEBUG
 cppflags-$(CONFIG_WLAN_OBJMGR_DEBUG) += -DWLAN_OBJMGR_REF_ID_DEBUG
@@ -2041,6 +2056,12 @@ cppflags-$(CONFIG_WLAN_NUD_TRACKING) += -DWLAN_NUD_TRACKING
 
 #Flag to enable set and get disable channel list feature
 cppflags-$(CONFIG_DISABLE_CHANNEL_LIST) += -DDISABLE_CHANNEL_LIST
+
+#Flag to enable set coex configuration feature
+cppflags-$(CONFIG_QCACLD_FEATURE_COEX_CONFIG) += -DFEATURE_COEX_CONFIG
+
+#Flag to enable MPTA helper feature
+cppflags-$(CONFIG_QCACLD_FEATURE_MPTA_HELPER) += -DFEATURE_MPTA_HELPER
 
 ifdef CONFIG_SCHED_HISTORY_SIZE
 ccflags-y += -DWLAN_SCHED_HISTORY_SIZE=$(CONFIG_SCHED_HISTORY_SIZE)

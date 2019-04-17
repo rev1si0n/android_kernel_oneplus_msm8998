@@ -533,6 +533,10 @@ struct hdd_tx_rx_stats {
 	__u32 rx_dropped[NUM_CPUS];
 	__u32 rx_delivered[NUM_CPUS];
 	__u32 rx_refused[NUM_CPUS];
+	qdf_atomic_t rx_usolict_arp_n_mcast_drp;
+	/* rx gro */
+	__u32 rx_aggregated;
+	__u32 rx_non_aggregated;
 
 	/* txflow stats */
 	bool     is_txflow_paused;
@@ -998,6 +1002,9 @@ enum dhcp_nego_status {
  * @vht_caps: VHT capabilities of current station
  * @reason_code: Disconnection reason code for current station
  * @rssi: RSSI of the current station reported from F/W
+ * @capability: Capability information of current station
+ * @support_mode: Max supported mode of a station currently
+ * connected to sap
  */
 struct hdd_station_info {
 	bool in_use;
@@ -1041,6 +1048,8 @@ struct hdd_station_info {
 	int8_t rssi;
 	enum dhcp_phase dhcp_phase;
 	enum dhcp_nego_status dhcp_nego_status;
+	uint16_t capability;
+	uint8_t support_mode;
 };
 
 /**
@@ -1207,6 +1216,7 @@ struct hdd_context;
 /**
  * struct hdd_adapter - hdd vdev/net_device context
  * @vdev: object manager vdev context
+ * @vdev_lock: lock to protect vdev context access
  * @event_flags: a bitmap of hdd_adapter_flags
  */
 struct hdd_adapter {
@@ -1222,6 +1232,7 @@ struct hdd_adapter {
 
 	struct hdd_context *hdd_ctx;
 	struct wlan_objmgr_vdev *vdev;
+	qdf_spinlock_t vdev_lock;
 
 	void *txrx_vdev;
 
@@ -2013,6 +2024,7 @@ struct hdd_context {
 	uint32_t num_derived_addr;
 	unsigned long provisioned_intf_addr_mask;
 	unsigned long derived_intf_addr_mask;
+	struct wlan_mlme_chain_cfg fw_chain_cfg;
 };
 
 /**

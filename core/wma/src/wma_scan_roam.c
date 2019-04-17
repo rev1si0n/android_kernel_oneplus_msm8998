@@ -367,6 +367,13 @@ QDF_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 		params->assoc_ie_length = roam_req->assoc_ie.length;
 		qdf_mem_copy(params->assoc_ie, roam_req->assoc_ie.addIEdata,
 						roam_req->assoc_ie.length);
+		/*Configure roaming scan behavior (DBS/Non-DBS scan)*/
+		if (roam_req->roaming_scan_policy)
+			scan_cmd_fp->scan_ctrl_flags_ext |=
+					WMI_SCAN_DBS_POLICY_FORCE_NONDBS;
+		else
+			scan_cmd_fp->scan_ctrl_flags_ext |=
+					WMI_SCAN_DBS_POLICY_DEFAULT;
 
 		wma_roam_scan_fill_fils_params(wma_handle, params, roam_req);
 	}
@@ -386,6 +393,7 @@ QDF_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 
 	status = wmi_unified_roam_scan_offload_mode_cmd(wma_handle->wmi_handle,
 				scan_cmd_fp, params);
+	qdf_mem_zero(params, sizeof(*params));
 	qdf_mem_free(params);
 	if (QDF_IS_STATUS_ERROR(status))
 		return status;
@@ -1463,6 +1471,7 @@ QDF_STATUS wma_process_roaming_config(tp_wma_handle wma_handle,
 
 	if (NULL == pMac) {
 		WMA_LOGE("%s: pMac is NULL", __func__);
+		qdf_mem_zero(roam_req, sizeof(*roam_req));
 		qdf_mem_free(roam_req);
 		return QDF_STATUS_E_FAILURE;
 	}
@@ -1471,6 +1480,7 @@ QDF_STATUS wma_process_roaming_config(tp_wma_handle wma_handle,
 		/* roam scan offload is not enabled in firmware.
 		 * Cannot initialize it in the middle of connection.
 		 */
+		qdf_mem_zero(roam_req, sizeof(*roam_req));
 		qdf_mem_free(roam_req);
 		return QDF_STATUS_E_PERM;
 	}
@@ -1864,6 +1874,7 @@ QDF_STATUS wma_process_roaming_config(tp_wma_handle wma_handle,
 	default:
 		break;
 	}
+	qdf_mem_zero(roam_req, sizeof(*roam_req));
 	qdf_mem_free(roam_req);
 	return qdf_status;
 }
@@ -4099,6 +4110,17 @@ static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
 	src_rssi = param_buf->rssi_list;
 	t_cached_result = cached_result;
 	t_scan_id_grp = &t_cached_result->result[0];
+
+	if ((t_cached_result->num_scan_ids *
+	     QDF_MIN(t_scan_id_grp->num_results,
+		     param_buf->num_bssid_list)) > param_buf->num_bssid_list) {
+		WMA_LOGE("%s:num_scan_ids %d, num_results %d num_bssid_list %d",
+			 __func__,
+			 t_cached_result->num_scan_ids,
+			 t_scan_id_grp->num_results,
+			 param_buf->num_bssid_list);
+		return -EINVAL;
+	}
 
 	WMA_LOGD("%s: num_scan_ids:%d", __func__,
 			t_cached_result->num_scan_ids);

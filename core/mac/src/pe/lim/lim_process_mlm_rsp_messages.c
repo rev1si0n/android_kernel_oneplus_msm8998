@@ -784,6 +784,8 @@ lim_fill_assoc_ind_params(tpAniSirGlobal mac_ctx,
 		sme_assoc_ind->HTCaps = assoc_ind->ht_caps;
 	if (assoc_ind->vht_caps.present)
 		sme_assoc_ind->VHTCaps = assoc_ind->vht_caps;
+	sme_assoc_ind->capability_info = assoc_ind->capabilityInfo;
+	sme_assoc_ind->he_caps_present = assoc_ind->he_caps_present;
 }
 
 /**
@@ -2744,6 +2746,7 @@ void lim_process_mlm_set_sta_key_rsp(tpAniSirGlobal mac_ctx,
 	session_entry = pe_find_session_by_session_id(mac_ctx, session_id);
 	if (session_entry == NULL) {
 		pe_err("session does not exist for given session_id");
+		qdf_mem_zero(msg->bodyptr, sizeof(tSetStaKeyParams));
 		qdf_mem_free(msg->bodyptr);
 		msg->bodyptr = NULL;
 		lim_send_sme_set_context_rsp(mac_ctx,
@@ -2769,7 +2772,7 @@ void lim_process_mlm_set_sta_key_rsp(tpAniSirGlobal mac_ctx,
 	else
 		mlm_set_key_cnf.key_len_nonzero = false;
 
-
+	qdf_mem_zero(msg->bodyptr, sizeof(tSetStaKeyParams));
 	qdf_mem_free(msg->bodyptr);
 	msg->bodyptr = NULL;
 	/* Restore MLME state */
@@ -2787,6 +2790,8 @@ void lim_process_mlm_set_sta_key_rsp(tpAniSirGlobal mac_ctx,
 			 * Free the buffer cached for the global
 			 * mac_ctx->lim.gpLimMlmSetKeysReq
 			 */
+			qdf_mem_zero(mac_ctx->lim.gpLimMlmSetKeysReq,
+				     sizeof(tLimMlmSetKeysReq));
 			qdf_mem_free(mac_ctx->lim.gpLimMlmSetKeysReq);
 			mac_ctx->lim.gpLimMlmSetKeysReq = NULL;
 		}
@@ -2830,6 +2835,7 @@ void lim_process_mlm_set_bss_key_rsp(tpAniSirGlobal mac_ctx,
 	if (session_entry == NULL) {
 		pe_err("session does not exist for given sessionId [%d]",
 			session_id);
+		qdf_mem_zero(msg->bodyptr, sizeof(tSetBssKeyParams));
 		qdf_mem_free(msg->bodyptr);
 		msg->bodyptr = NULL;
 		lim_send_sme_set_context_rsp(mac_ctx, set_key_cnf.peer_macaddr,
@@ -2865,7 +2871,7 @@ void lim_process_mlm_set_bss_key_rsp(tpAniSirGlobal mac_ctx,
 	} else {
 		set_key_cnf.resultCode = result_status;
 	}
-
+	qdf_mem_zero(msg->bodyptr, sizeof(tSetBssKeyParams));
 	qdf_mem_free(msg->bodyptr);
 	msg->bodyptr = NULL;
 	/* Restore MLME state */
@@ -2886,6 +2892,8 @@ void lim_process_mlm_set_bss_key_rsp(tpAniSirGlobal mac_ctx,
 		 * Free the buffer cached for the
 		 * global mac_ctx->lim.gpLimMlmSetKeysReq
 		 */
+		qdf_mem_zero(mac_ctx->lim.gpLimMlmSetKeysReq,
+			     sizeof(tLimMlmSetKeysReq));
 		qdf_mem_free(mac_ctx->lim.gpLimMlmSetKeysReq);
 		mac_ctx->lim.gpLimMlmSetKeysReq = NULL;
 	}

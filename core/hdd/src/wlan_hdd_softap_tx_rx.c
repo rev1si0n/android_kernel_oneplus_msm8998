@@ -826,7 +826,7 @@ static void hdd_softap_notify_tx_compl_cbk(struct sk_buff *skb,
 QDF_STATUS hdd_softap_rx_packet_cbk(void *context, qdf_nbuf_t rx_buf)
 {
 	struct hdd_adapter *adapter = NULL;
-	int rxstat;
+	QDF_STATUS qdf_status;
 	unsigned int cpu_index;
 	struct sk_buff *skb = NULL;
 	struct sk_buff *next = NULL;
@@ -913,9 +913,10 @@ QDF_STATUS hdd_softap_rx_packet_cbk(void *context, qdf_nbuf_t rx_buf)
 		skb->protocol = eth_type_trans(skb, skb->dev);
 
 		/* hold configurable wakelock for unicast traffic */
-		if (hdd_ctx->config->rx_wakelock_timeout &&
-			skb->pkt_type != PACKET_BROADCAST &&
-			skb->pkt_type != PACKET_MULTICAST) {
+		if (!hdd_is_current_high_throughput(hdd_ctx) &&
+		    hdd_ctx->config->rx_wakelock_timeout &&
+		    skb->pkt_type != PACKET_BROADCAST &&
+		    skb->pkt_type != PACKET_MULTICAST) {
 			cds_host_diag_log_work(&hdd_ctx->rx_wake_lock,
 						   hdd_ctx->config->rx_wakelock_timeout,
 						   WIFI_POWER_EVENT_WAKELOCK_HOLD_RX);
@@ -928,15 +929,10 @@ QDF_STATUS hdd_softap_rx_packet_cbk(void *context, qdf_nbuf_t rx_buf)
 		 * it to stack
 		 */
 		qdf_net_buf_debug_release_skb(skb);
-		if (hdd_napi_enabled(HDD_NAPI_ANY) &&
-			!hdd_ctx->enable_rxthread)
-			rxstat = netif_receive_skb(skb);
-		else
-			rxstat = netif_rx_ni(skb);
 
-		hdd_ctx->no_rx_offload_pkt_cnt++;
+		qdf_status = hdd_rx_deliver_to_stack(adapter, skb);
 
-		if (NET_RX_SUCCESS == rxstat)
+		if (QDF_IS_STATUS_SUCCESS(qdf_status))
 			++adapter->hdd_stats.tx_rx_stats.rx_delivered[cpu_index];
 		else
 			++adapter->hdd_stats.tx_rx_stats.rx_refused[cpu_index];

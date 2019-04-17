@@ -1749,28 +1749,6 @@ enum hdd_dot11_mode {
 
 /*
  * <ini>
- * OkcEnabled - Enable OKC(Oppurtunistic Key Caching)
- * @Min: 0
- * @Max: 1
- * @Default: 1
- *
- * This INI is used to enable OKC feature
- *
- * Related: None
- *
- * Supported Feature: Roaming
- *
- * Usage: External
- *
- * </ini>
- */
-#define CFG_OKC_FEATURE_ENABLED_NAME                       "OkcEnabled"
-#define CFG_OKC_FEATURE_ENABLED_MIN                        (0)
-#define CFG_OKC_FEATURE_ENABLED_MAX                        (1)
-#define CFG_OKC_FEATURE_ENABLED_DEFAULT                    (1)
-
-/*
- * <ini>
  * gRoamScanOffloadEnabled - Enable Roam Scan Offload
  * @Min: 0
  * @Max: 1
@@ -2290,6 +2268,30 @@ enum hdd_dot11_mode {
 #define CFG_ROAM_SCAN_TRIGGER_REASON_BITMASK_MIN     (0)
 #define CFG_ROAM_SCAN_TRIGGER_REASON_BITMASK_MAX     (0xFFFFFFFF)
 #define CFG_ROAM_SCAN_TRIGGER_REASON_BITMASK_DEFAULT (0x10DA)
+
+/*
+ * <ini>
+ * roaming_scan_policy - To config roaming scan policy
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to configure roaming scan behavior from HOST
+ * 0 : DBS scan
+ * 1 : Non-DBS scan
+ *
+ * Related: None
+ *
+ * Supported Feature: Roaming
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_ROAM_SCAN_SCAN_POLICY_NAME "roaming_scan_policy"
+#define CFG_ROAM_SCAN_SCAN_POLICY_MIN     (0)
+#define CFG_ROAM_SCAN_SCAN_POLICY_MAX     (1)
+#define CFG_ROAM_SCAN_SCAN_POLICY_DEFAULT (0)
 
 /*
  * <ini>
@@ -8412,6 +8414,96 @@ enum hdd_link_speed_rpt_type {
 #define CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MAX     (500)
 #define CFG_STA_MIRACAST_MCC_REST_TIME_VAL_DEFAULT (400)
 
+/*
+ * <ini>
+ * sta_scan_burst_duration - Burst duration in case of split scan.
+ * @Min: 0
+ * @Max: 180
+ * @Default: 0
+ *
+ * This ini is used to set burst duration of scan only when STA is active.
+ *
+ * Related: None.
+ *
+ * Supported Feature: Concurrency
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_STA_SCAN_BURST_DURATION_VAL                 "sta_scan_burst_duration"
+#define CFG_STA_SCAN_BURST_DURATION_VAL_MIN             (0)
+#define CFG_STA_SCAN_BURST_DURATION_VAL_MAX             (180)
+#define CFG_STA_SCAN_BURST_DURATION_VAL_DEFAULT         (0)
+
+/*
+ * <ini>
+ * p2p_scan_burst_duration - Burst duration in case of split scan for p2p scan.
+ * @Min: 0
+ * @Max: 180
+ * @Default: 0
+ *
+ * This ini is used to set burst duration of scan for p2p scan requests.
+ *
+ * Related: None.
+ *
+ * Supported Feature: Concurrency
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_P2P_SCAN_BURST_DURATION_VAL                 "p2p_scan_burst_duration"
+#define CFG_P2P_SCAN_BURST_DURATION_VAL_MIN             (0)
+#define CFG_P2P_SCAN_BURST_DURATION_VAL_MAX             (180)
+#define CFG_P2P_SCAN_BURST_DURATION_VAL_DEFAULT         (0)
+
+/*
+ * <ini>
+ * go_scan_burst_duration - Burst duration in case of split scan when GO is
+ * active.
+ * @Min: 0
+ * @Max: 180
+ * @Default: 0
+ *
+ * This ini is used to set burst duration of scan when GO is active.
+ *
+ * Related: None.
+ *
+ * Supported Feature: Concurrency
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_GO_SCAN_BURST_DURATION_VAL                 "go_scan_burst_duration"
+#define CFG_GO_SCAN_BURST_DURATION_VAL_MIN             (0)
+#define CFG_GO_SCAN_BURST_DURATION_VAL_MAX             (180)
+#define CFG_GO_SCAN_BURST_DURATION_VAL_DEFAULT         (0)
+
+/*
+ * <ini>
+ * ap_scan_burst_duration - Burst duration in case of split scan when ap
+ * is active.
+ * @Min: 0
+ * @Max: 32
+ * @Default: 0
+ *
+ * This ini is used to set burst duration of scan when SAP is active.
+ *
+ * Related: None.
+ *
+ * Supported Feature: Concurrency
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_AP_SCAN_BURST_DURATION_VAL                 "ap_scan_burst_duration"
+#define CFG_AP_SCAN_BURST_DURATION_VAL_MIN             (0)
+#define CFG_AP_SCAN_BURST_DURATION_VAL_MAX             (32)
+#define CFG_AP_SCAN_BURST_DURATION_VAL_DEFAULT         (0)
+
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 /*
  * <ini>
@@ -10639,7 +10731,7 @@ enum dot11p_mode {
 #define CFG_RX_THREAD_CPU_MASK_MIN	(0)
 #define CFG_RX_THREAD_CPU_MASK_MAX	(0xFF)
 #ifdef RX_PERFORMANCE
-#define CFG_RX_THREAD_CPU_MASK_DEFAULT	(0x02)
+#define CFG_RX_THREAD_CPU_MASK_DEFAULT	(0xFE)
 #else
 #define CFG_RX_THREAD_CPU_MASK_DEFAULT	(0)
 #endif
@@ -15565,6 +15657,24 @@ enum hdd_external_acs_policy {
 #define CFG_SET_BT_INTERFERENCE_HIGH_UL_MAX      (100)
 #define CFG_SET_BT_INTERFERENCE_HIGH_UL_DEFAULT  (-11)
 
+#ifdef FEATURE_MPTA_HELPER
+/*
+ * <ini>
+ * gMPTAHelperEnable - Config MPTA helper enable
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_SET_MPTA_HELPER_ENABLE_NAME     "gMPTAHelperEnable"
+#define CFG_SET_MPTA_HELPER_ENABLE_MIN      (0)
+#define CFG_SET_MPTA_HELPER_ENABLE_MAX      (1)
+#define CFG_SET_MPTA_HELPER_ENABLE_DEFAULT  (0)
+#endif
+
 /*
  * <ini>
  * enable_mac_provision - Enable/disable MAC address provisioning feature
@@ -16506,6 +16616,10 @@ struct hdd_config {
 	uint8_t is_sta_connection_in_5gz_enabled;
 	uint16_t p2p_listen_defer_interval;
 	uint32_t sta_miracast_mcc_rest_time_val;
+	uint32_t sta_scan_burst_duration;
+	uint32_t p2p_scan_burst_duration;
+	uint32_t go_scan_burst_duration;
+	uint32_t ap_scan_burst_duration;
 	bool is_ramdump_enabled;
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 	bool sap_channel_avoidance;
@@ -16592,6 +16706,7 @@ struct hdd_config {
 	uint32_t ho_delay_for_rx;
 	uint32_t min_delay_btw_roam_scans;
 	uint32_t roam_trigger_reason_bitmask;
+	bool roaming_scan_policy;
 	uint32_t roam_bg_scan_client_bitmap;
 	bool enable_edca_params;
 	uint32_t edca_vo_cwmin;
@@ -16872,6 +16987,9 @@ struct hdd_config {
 	int16_t set_bt_interference_medium_ul;
 	int16_t set_bt_interference_high_ll;
 	int16_t set_bt_interference_high_ul;
+#ifdef FEATURE_MPTA_HELPER
+	bool    set_mpta_helper_enable;
+#endif
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	uint32_t roam_preauth_retry_count;
 	uint32_t roam_preauth_no_ack_timeout;
@@ -17063,7 +17181,6 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode(enum hdd_dot11_mode dot11Mode);
 QDF_STATUS hdd_execute_global_config_command(struct hdd_context *hdd_ctx,
 					     char *command);
 
-bool hdd_is_okc_mode_enabled(struct hdd_context *hdd_ctx);
 QDF_STATUS hdd_set_idle_ps_config(struct hdd_context *hdd_ctx, bool val);
 void hdd_get_pmkid_modes(struct hdd_context *hdd_ctx,
 			 struct pmkid_mode_bits *pmkid_modes);

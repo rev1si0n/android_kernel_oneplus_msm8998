@@ -2613,6 +2613,7 @@ __lim_process_sme_set_context_req(tpAniSirGlobal mac_ctx, uint32_t *msg_buf)
 	}
 	qdf_mem_copy(set_context_req, msg_buf,
 			sizeof(struct sSirSmeSetContextReq));
+	qdf_mem_zero(msg_buf, sizeof(struct sSirSmeSetContextReq));
 	sme_session_id = set_context_req->sessionId;
 	sme_transaction_id = set_context_req->transactionId;
 
@@ -2720,6 +2721,7 @@ __lim_process_sme_set_context_req(tpAniSirGlobal mac_ctx, uint32_t *msg_buf)
 				sme_transaction_id);
 	}
 end:
+	qdf_mem_zero(set_context_req, sizeof(struct sSirSmeSetContextReq));
 	qdf_mem_free(set_context_req);
 	return;
 }
@@ -3693,6 +3695,7 @@ static void __lim_process_roam_scan_offload_req(tpAniSirGlobal mac_ctx,
 	local_ie_buf = qdf_mem_malloc(MAX_DEFAULT_SCAN_IE_LEN);
 	if (!local_ie_buf) {
 		pe_err("Mem Alloc failed for local_ie_buf");
+		qdf_mem_zero(req_buffer, sizeof(*req_buffer));
 		qdf_mem_free(req_buffer);
 		return;
 	}
@@ -3720,6 +3723,7 @@ static void __lim_process_roam_scan_offload_req(tpAniSirGlobal mac_ctx,
 	status = wma_post_ctrl_msg(mac_ctx, &wma_msg);
 	if (QDF_STATUS_SUCCESS != status) {
 		pe_err("Posting WMA_ROAM_SCAN_OFFLOAD_REQ failed");
+		qdf_mem_zero(req_buffer, sizeof(*req_buffer));
 		qdf_mem_free(req_buffer);
 	}
 }
@@ -6187,6 +6191,8 @@ void lim_add_roam_blacklist_ap(tpAniSirGlobal mac_ctx,
 		entry->time_during_rejection = blacklist->received_time;
 		/* set 0dbm as expected rssi for btm blaclisted entries */
 		entry->expected_rssi = LIM_MIN_RSSI;
+
+		qdf_mutex_acquire(&mac_ctx->roam.rssi_disallow_bssid_lock);
 		lim_remove_duplicate_bssid_node(
 					entry,
 					&mac_ctx->roam.rssi_disallow_bssid);
@@ -6196,6 +6202,8 @@ void lim_add_roam_blacklist_ap(tpAniSirGlobal mac_ctx,
 			status = lim_rem_blacklist_entry_with_lowest_delta(
 					&mac_ctx->roam.rssi_disallow_bssid);
 			if (QDF_IS_STATUS_ERROR(status)) {
+				qdf_mutex_release(&mac_ctx->roam.
+					rssi_disallow_bssid_lock);
 				pe_err("Failed to remove entry with lowest delta");
 				qdf_mem_free(entry);
 				return;
@@ -6207,6 +6215,8 @@ void lim_add_roam_blacklist_ap(tpAniSirGlobal mac_ctx,
 					&mac_ctx->roam.rssi_disallow_bssid,
 					&entry->node);
 			if (QDF_IS_STATUS_ERROR(status)) {
+				qdf_mutex_release(&mac_ctx->roam.
+					rssi_disallow_bssid_lock);
 				pe_err("Failed to enqueue bssid: %pM",
 				       entry->bssid.bytes);
 				qdf_mem_free(entry);
@@ -6215,6 +6225,7 @@ void lim_add_roam_blacklist_ap(tpAniSirGlobal mac_ctx,
 			pe_debug("Added BTM blacklisted bssid: %pM",
 				 entry->bssid.bytes);
 		}
+		qdf_mutex_release(&mac_ctx->roam.rssi_disallow_bssid_lock);
 		blacklist++;
 	}
 }

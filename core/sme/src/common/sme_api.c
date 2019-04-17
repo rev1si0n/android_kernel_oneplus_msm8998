@@ -593,10 +593,9 @@ QDF_STATUS sme_ser_handle_active_cmd(struct wlan_serialization_command *cmd)
 	return status;
 }
 
-QDF_STATUS sme_ser_cmd_callback(void *buf,
+QDF_STATUS sme_ser_cmd_callback(struct wlan_serialization_command *cmd,
 				enum wlan_serialization_cb_reason reason)
 {
-	struct wlan_serialization_command *cmd = buf;
 	tHalHandle hal;
 	tpAniSirGlobal mac_ctx;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
@@ -5623,23 +5622,20 @@ uint8_t sme_get_infra_operation_channel(tHalHandle hHal, uint8_t sessionId)
 	return channel;
 }
 
-/* This routine will return poerating channel on which other BSS is operating
- * to be used for concurrency mode. If other BSS is not up or not connected it
- * will return 0
- */
-uint8_t sme_get_concurrent_operation_channel(tHalHandle hHal)
+uint8_t sme_get_beaconing_concurrent_operation_channel(tHalHandle hal,
+						       uint8_t vdev_id_to_skip)
 {
 	QDF_STATUS status = QDF_STATUS_E_FAILURE;
-	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
 	uint8_t channel = 0;
 
-	status = sme_acquire_global_lock(&pMac->sme);
+	status = sme_acquire_global_lock(&mac->sme);
 	if (QDF_IS_STATUS_SUCCESS(status)) {
-
-		channel = csr_get_concurrent_operation_channel(pMac);
-		QDF_TRACE(QDF_MODULE_ID_SME, QDF_TRACE_LEVEL_INFO,
-			"%s: Other Concurrent Channel: %d", __func__, channel);
-		sme_release_global_lock(&pMac->sme);
+		channel = csr_get_beaconing_concurrent_channel(mac,
+							       vdev_id_to_skip);
+		sme_info("Other Concurrent Channel: %d skipped vdev_id %d",
+			 channel, vdev_id_to_skip);
+		sme_release_global_lock(&mac->sme);
 	}
 
 	return channel;
@@ -7192,6 +7188,7 @@ QDF_STATUS sme_stop_roaming(tHalHandle hal, uint8_t session_id, uint8_t reason)
 	if (QDF_STATUS_SUCCESS != status) {
 		sme_err("WMA_ROAM_SCAN_OFFLOAD_REQ failed, session_id: %d",
 			session_id);
+		qdf_mem_zero(req, sizeof(*req));
 		qdf_mem_free(req);
 		return QDF_STATUS_E_FAULT;
 	}
@@ -14963,10 +14960,8 @@ QDF_STATUS sme_fast_reassoc(tHalHandle hal, struct csr_roam_profile *profile,
 	}
 
 	roam_profile = session->pCurRoamProfile;
-	if (roam_profile->supplicant_disabled_roaming ||
-	    roam_profile->driver_disabled_roaming) {
-		sme_debug("roaming status in Supplicant %d and in driver %d",
-			  roam_profile->supplicant_disabled_roaming,
+	if (roam_profile->driver_disabled_roaming) {
+		sme_debug("roaming status in driver %d",
 			  roam_profile->driver_disabled_roaming);
 		return QDF_STATUS_E_FAILURE;
 	}
@@ -15087,7 +15082,10 @@ send_flush_cmd:
 				   QDF_MODULE_ID_WMA,
 				   QDF_MODULE_ID_WMA, &msg)) {
 		sme_err("Not able to post message to WDA");
-		qdf_mem_free(pmk_cache);
+		if (pmk_cache) {
+			qdf_mem_zero(pmk_cache, sizeof(*pmk_cache));
+			qdf_mem_free(pmk_cache);
+		}
 		return QDF_STATUS_E_FAILURE;
 	}
 
@@ -16090,3 +16088,50 @@ QDF_STATUS sme_update_hidden_ssid_status_cb(mac_handle_t mac_handle,
 
 	return status;
 }
+
+#ifdef WLAN_MWS_INFO_DEBUGFS
+QDF_STATUS
+sme_get_mws_coex_info(mac_handle_t mac_handle, uint32_t vdev_id,
+		      uint32_t cmd_id, void (*callback_fn)(void *coex_info_data,
+							   void *context,
+							   wmi_mws_coex_cmd_id
+							   cmd_id),
+		      void *context)
+{
+	QDF_STATUS status = QDF_STATUS_E_FAILURE;
+	tpAniSirGlobal mac = MAC_CONTEXT(mac_handle);
+	struct scheduler_msg msg = {0};
+	struct sir_get_mws_coex_info *req;
+
+	req = qdf_mem_malloc(sizeof(*req));
+	if (!req) {
+		sme_err("Failed allocate memory for MWS coex info req");
+		return QDF_STATUS_E_NOMEM;
+	}
+
+	req->vdev_id = vdev_id;
+	req->cmd_id  = cmd_id;
+	mac->sme.mws_coex_info_state_resp_callback = callback_fn;
+	mac->sme.mws_coex_info_ctx = context;
+	status = sme_acquire_global_lock(&mac->sme);
+	if (QDF_IS_STATUS_SUCCESS(status)) {
+		msg.bodyptr = req;
+		msg.type = WMA_GET_MWS_COEX_INFO_REQ;
+		status = scheduler_post_message(QDF_MODULE_ID_SME,
+						QDF_MODULE_ID_WMA,
+						QDF_MODULE_ID_WMA,
+						&msg);
+		sme_release_global_lock(&mac->sme);
+		if (!QDF_IS_STATUS_SUCCESS(status)) {
+			sme_err("post MWS coex info req failed");
+			status = QDF_STATUS_E_FAILURE;
+			qdf_mem_free(req);
+		}
+	} else {
+		sme_err("sme_acquire_global_lock failed");
+		qdf_mem_free(req);
+	}
+
+	return status;
+}
+#endif /* WLAN_MWS_INFO_DEBUGFS */
