@@ -1135,6 +1135,16 @@ typedef struct _htt_rx_peer_rate_stats_tlv {
     A_UINT32 rx_ulofdma_mpdu_ok;       /* mpdu level */
     A_UINT32 rx_ulofdma_mpdu_fail;     /* mpdu level */
     A_INT8   rx_ul_fd_rssi[HTT_RX_PEER_STATS_NUM_SPATIAL_STREAMS];/* dBm unit */
+    /* per_chain_rssi_pkt_type:
+     * This field shows what type of rx frame the per-chain RSSI was computed
+     * on, by recording the frame type and sub-type as bit-fields within this
+     * field:
+     * BIT [3 : 0]    :- IEEE80211_FC0_TYPE
+     * BIT [7 : 4]    :- IEEE80211_FC0_SUBTYPE
+     * BIT [31 : 8]   :- Reserved
+     */
+    A_UINT32  per_chain_rssi_pkt_type;
+    A_INT8 rx_per_chain_rssi_in_dbm[HTT_RX_PEER_STATS_NUM_SPATIAL_STREAMS][HTT_RX_PEER_STATS_NUM_BW_COUNTERS];
 } htt_rx_peer_rate_stats_tlv;
 
 typedef enum {
@@ -2764,6 +2774,7 @@ typedef struct {
 #define HTT_TX_PDEV_STATS_NUM_LEGACY_CCK_STATS     4
 #define HTT_TX_PDEV_STATS_NUM_LEGACY_OFDM_STATS    8
 #define HTT_TX_PDEV_STATS_NUM_LTF                  4
+#define HTT_TX_PDEV_STATS_NUM_11AX_TRIGGER_TYPES   6
 #define HTT_TX_NUM_OF_SOUNDING_STATS_WORDS \
     (HTT_TX_PDEV_STATS_NUM_BW_COUNTERS * \
     HTT_TX_PDEV_STATS_NUM_AX_MUMIMO_USER_STATS)
@@ -2855,6 +2866,7 @@ typedef struct {
     A_UINT32 ac_mu_mimo_tx_gi[HTT_TX_PDEV_STATS_NUM_GI_COUNTERS][HTT_TX_PDEV_STATS_NUM_MCS_COUNTERS];
     A_UINT32 ax_mu_mimo_tx_gi[HTT_TX_PDEV_STATS_NUM_GI_COUNTERS][HTT_TX_PDEV_STATS_NUM_MCS_COUNTERS];
     A_UINT32 ofdma_tx_gi[HTT_TX_PDEV_STATS_NUM_GI_COUNTERS][HTT_TX_PDEV_STATS_NUM_MCS_COUNTERS];
+    A_UINT32 trigger_type_11ax[HTT_TX_PDEV_STATS_NUM_11AX_TRIGGER_TYPES];
 } htt_tx_pdev_rate_stats_tlv;
 
 /* STATS_TYPE : HTT_DBG_EXT_STATS_PDEV_TX_RATE
@@ -2882,6 +2894,7 @@ typedef struct {
 #define HTT_RX_PDEV_STATS_NUM_PREAMBLE_TYPES       HTT_STATS_PREAM_COUNT
 #define HTT_RX_PDEV_MAX_OFDMA_NUM_USER             8
 #define HTT_RX_PDEV_STATS_RXEVM_MAX_PILOTS_PER_NSS 16
+#define HTT_RX_PDEV_STATS_NUM_RU_SIZE_COUNTERS     6
 
 #define HTT_RX_PDEV_RATE_STATS_MAC_ID_M     0x000000ff
 #define HTT_RX_PDEV_RATE_STATS_MAC_ID_S              0
@@ -2960,6 +2973,23 @@ typedef struct {
      */
     A_INT32 rx_pilot_evm_dB_mean[HTT_RX_PDEV_STATS_NUM_SPATIAL_STREAMS];
     A_INT8  rx_ul_fd_rssi[HTT_RX_PDEV_STATS_NUM_SPATIAL_STREAMS][HTT_RX_PDEV_MAX_OFDMA_NUM_USER]; /* dBm units */
+    /* per_chain_rssi_pkt_type:
+     * This field shows what type of rx frame the per-chain RSSI was computed
+     * on, by recording the frame type and sub-type as bit-fields within this
+     * field:
+     * BIT [3 : 0]    :- IEEE80211_FC0_TYPE
+     * BIT [7 : 4]    :- IEEE80211_FC0_SUBTYPE
+     * BIT [31 : 8]   :- Reserved
+     */
+    A_UINT32  per_chain_rssi_pkt_type;
+    A_INT8 rx_per_chain_rssi_in_dbm[HTT_RX_PDEV_STATS_NUM_SPATIAL_STREAMS][HTT_RX_PDEV_STATS_NUM_BW_COUNTERS];
+    A_UINT32 rx_su_ndpa;
+    A_UINT32 rx_11ax_su_txbf_mcs[HTT_RX_PDEV_STATS_NUM_MCS_COUNTERS];
+    A_UINT32 rx_mu_ndpa;
+    A_UINT32 rx_11ax_mu_txbf_mcs[HTT_RX_PDEV_STATS_NUM_MCS_COUNTERS];
+    A_UINT32 rx_br_poll;
+    A_UINT32 rx_11ax_dl_ofdma_mcs[HTT_RX_PDEV_STATS_NUM_MCS_COUNTERS];
+    A_UINT32 rx_11ax_dl_ofdma_ru[HTT_RX_PDEV_STATS_NUM_RU_SIZE_COUNTERS];
 } htt_rx_pdev_rate_stats_tlv;
 
 
