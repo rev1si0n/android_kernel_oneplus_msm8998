@@ -301,7 +301,6 @@ cds_cfg_update_ac_specs_params(struct txrx_pdev_cfg_param_t *olcfg,
 	}
 }
 
-#ifdef QCA_LL_TX_FLOW_CONTROL_V2
 static inline void
 cds_cdp_set_flow_control_params(struct cds_config_info *cds_cfg,
 				struct txrx_pdev_cfg_param_t *cdp_cfg)
@@ -310,12 +309,6 @@ cds_cdp_set_flow_control_params(struct cds_config_info *cds_cfg,
 	cdp_cfg->tx_flow_start_queue_offset =
 				 cds_cfg->tx_flow_start_queue_offset;
 }
-#else
-static inline void
-cds_cdp_set_flow_control_params(struct cds_config_info *cds_cfg,
-				struct txrx_pdev_cfg_param_t *cdp_cfg)
-{}
-#endif
 
 /**
  * cds_cdp_cfg_attach() - attach data path config module
@@ -406,6 +399,7 @@ static QDF_STATUS cds_deregister_all_modules(void)
 
 	scheduler_deregister_wma_legacy_handler();
 	scheduler_deregister_sys_legacy_handler();
+	status = scheduler_deregister_module(QDF_MODULE_ID_SCAN);
 	status = scheduler_deregister_module(QDF_MODULE_ID_SYS);
 	status = scheduler_deregister_module(QDF_MODULE_ID_TARGET_IF);
 	status = scheduler_deregister_module(QDF_MODULE_ID_PE);
