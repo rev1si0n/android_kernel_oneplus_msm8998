@@ -103,9 +103,9 @@ static uint32_t convert_target_pdev_id_to_host_pdev_id(uint32_t pdev_id)
 		return WMI_HOST_PDEV_ID_2;
 	}
 
-	QDF_ASSERT(0);
+	WMI_LOGE("Invalid pdev_id");
 
-	return WMI_HOST_PDEV_ID_SOC;
+	return WMI_HOST_PDEV_ID_INVALID;
 }
 
 /**
@@ -541,12 +541,12 @@ static QDF_STATUS send_vdev_start_cmd_tlv(wmi_unified_t wmi_handle,
 				     cmd->ssid.ssid_len);
 		}
 
-		if (req->hidden_ssid)
-			cmd->flags |= WMI_UNIFIED_VDEV_START_HIDDEN_SSID;
-
 		if (req->pmf_enabled)
 			cmd->flags |= WMI_UNIFIED_VDEV_START_PMF_ENABLED;
 	}
+
+	if (req->hidden_ssid)
+		cmd->flags |= WMI_UNIFIED_VDEV_START_HIDDEN_SSID;
 
 	cmd->flags |= WMI_UNIFIED_VDEV_START_LDPC_RX_ENABLED;
 	cmd->num_noa_descriptors = req->num_noa_descriptors;
@@ -13019,6 +13019,10 @@ void wmi_copy_resource_config(wmi_resource_config *resource_cfg,
 		WMI_RSRC_CFG_FLAG_PEER_UNMAP_RESPONSE_SUPPORT_SET(
 						resource_cfg->flag1, 1);
 
+	if (tgt_res_cfg->tstamp64_en)
+		WMI_RSRC_CFG_FLAG_TX_COMPLETION_TX_TSF64_ENABLE_SET(
+						resource_cfg->flag1, 1);
+
 	wmi_copy_twt_resource_config(resource_cfg, tgt_res_cfg);
 }
 
@@ -21212,6 +21216,9 @@ static QDF_STATUS extract_dfs_radar_detection_event_tlv(
 	radar_event = param_tlv->fixed_param;
 	radar_found->pdev_id = convert_target_pdev_id_to_host_pdev_id(
 			radar_event->pdev_id);
+	if (radar_found->pdev_id == WMI_HOST_PDEV_ID_INVALID)
+		return QDF_STATUS_E_FAILURE;
+
 	radar_found->detection_mode = radar_event->detection_mode;
 	radar_found->chan_freq = radar_event->chan_freq;
 	radar_found->chan_width = radar_event->chan_width;
@@ -23935,6 +23942,8 @@ static void populate_tlv_service(uint32_t *wmi_service)
 			WMI_SERVICE_VDEV_LATENCY_CONFIG;
 	wmi_service[wmi_service_sta_plus_sta_support] =
 				WMI_SERVICE_STA_PLUS_STA_SUPPORT;
+	wmi_service[wmi_service_tx_compl_tsf64] =
+			WMI_SERVICE_TX_COMPL_TSF64;
 }
 
 #ifndef CONFIG_MCL

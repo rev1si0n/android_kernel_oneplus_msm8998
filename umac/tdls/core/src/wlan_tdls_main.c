@@ -170,6 +170,12 @@ QDF_STATUS tdls_vdev_obj_create_notification(struct wlan_objmgr_vdev *vdev,
 		return QDF_STATUS_E_NOSUPPORT;
 	}
 
+	if (tdls_soc_obj->tdls_osif_init_cb) {
+		status = tdls_soc_obj->tdls_osif_init_cb(vdev);
+		if (QDF_IS_STATUS_ERROR(status))
+			return status;
+	}
+
 	/* TODO: Add concurrency check */
 
 	tdls_vdev_obj = qdf_mem_malloc(sizeof(*tdls_vdev_obj));
@@ -250,6 +256,9 @@ QDF_STATUS tdls_vdev_obj_destroy_notification(struct wlan_objmgr_vdev *vdev,
 
 	tdls_vdev_deinit(tdls_vdev_obj);
 	qdf_mem_free(tdls_vdev_obj);
+
+	if (tdls_soc_obj->tdls_osif_deinit_cb)
+		tdls_soc_obj->tdls_osif_deinit_cb(vdev);
 
 	return status;
 }
