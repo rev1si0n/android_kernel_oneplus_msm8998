@@ -276,6 +276,15 @@ enum htt_dbg_ext_stats_type {
      */
     HTT_DBG_EXT_STATS_RING_BACKPRESSURE_STATS = 24,
 
+    /* HTT_DBG_EXT_STATS_LATENCY_PROF_STATS
+     *  PARAMS:
+     *
+     *  RESP MSG:
+     *    - htt_soc_latency_prof_t
+     */
+    HTT_DBG_EXT_STATS_LATENCY_PROF_STATS = 25,
+
+
     /* keep this last */
     HTT_DBG_NUM_EXT_STATS = 256,
 };
@@ -372,6 +381,9 @@ typedef enum {
     HTT_STATS_PDEV_OBSS_PD_TAG                     = 88, /* htt_pdev_obss_pd_stats_tlv */
     HTT_STATS_HW_WAR_TAG                           = 89, /* htt_hw_war_stats_tlv */
     HTT_STATS_RING_BACKPRESSURE_STATS_TAG          = 90, /* htt_ring_backpressure_stats_tlv */
+    HTT_STATS_LATENCY_PROF_STATS_TAG               = 91, /* htt_latency_prof_stats_tlv */
+    HTT_STATS_LATENCY_CTX_TAG                      = 92, /* htt_latency_prof_ctx_tlv */
+    HTT_STATS_LATENCY_CNT_TAG                      = 93, /* htt_latency_prof_cnt_tlv */
 
     HTT_STATS_MAX_TAG,
 } htt_tlv_tag_t;
@@ -759,6 +771,14 @@ typedef struct {
     A_UINT32 phy_warm_reset_reason_num_cca_rx_frame_stuck;
     A_UINT32 phy_warm_reset_reason_wal_rx_recovery_rst_rx_busy;
     A_UINT32 phy_warm_reset_reason_wal_rx_recovery_rst_mac_hang;
+    A_UINT32 phy_warm_reset_reason_mac_reset_converted_phy_reset;
+
+    A_UINT32 wal_rx_recovery_rst_mac_hang_count;
+    A_UINT32 wal_rx_recovery_rst_known_sig_count;
+    A_UINT32 wal_rx_recovery_rst_no_rx_count;
+    A_UINT32 wal_rx_recovery_rst_no_rx_consecutive_count;
+    A_UINT32 wal_rx_recovery_rst_rx_busy_count;
+    A_UINT32 wal_rx_recovery_rst_phy_mac_hang_count;
 } htt_hw_stats_pdev_errs_tlv;
 
 typedef struct {
@@ -1210,6 +1230,11 @@ typedef struct _htt_rx_peer_rate_stats_tlv {
      */
     A_UINT32 per_chain_rssi_pkt_type;
     A_INT8   rx_per_chain_rssi_in_dbm[HTT_RX_PEER_STATS_NUM_SPATIAL_STREAMS][HTT_RX_PEER_STATS_NUM_BW_COUNTERS];
+
+    A_UINT32 rx_ulmumimo_non_data_ppdu;   /* ppdu level */
+    A_UINT32 rx_ulmumimo_data_ppdu;       /* ppdu level */
+    A_UINT32 rx_ulmumimo_mpdu_ok;         /* mpdu level */
+    A_UINT32 rx_ulmumimo_mpdu_fail;       /* mpdu level */
 } htt_rx_peer_rate_stats_tlv;
 
 typedef enum {
@@ -2986,6 +3011,7 @@ typedef struct {
 #define HTT_RX_PDEV_STATS_NUM_SPATIAL_STREAMS 8
 #define HTT_RX_PDEV_STATS_NUM_PREAMBLE_TYPES HTT_STATS_PREAM_COUNT
 #define HTT_RX_PDEV_MAX_OFDMA_NUM_USER 8
+#define HTT_RX_PDEV_MAX_ULMUMIMO_NUM_USER 8
 #define HTT_RX_PDEV_STATS_RXEVM_MAX_PILOTS_PER_NSS 16
 #define HTT_RX_PDEV_STATS_NUM_RU_SIZE_COUNTERS 6
 
@@ -3083,6 +3109,11 @@ typedef struct {
     A_UINT32 rx_br_poll;
     A_UINT32 rx_11ax_dl_ofdma_mcs[HTT_RX_PDEV_STATS_NUM_MCS_COUNTERS];
     A_UINT32 rx_11ax_dl_ofdma_ru[HTT_RX_PDEV_STATS_NUM_RU_SIZE_COUNTERS];
+
+    A_UINT32 rx_ulmumimo_non_data_ppdu[HTT_RX_PDEV_MAX_ULMUMIMO_NUM_USER]; /* ppdu level */
+    A_UINT32 rx_ulmumimo_data_ppdu[HTT_RX_PDEV_MAX_ULMUMIMO_NUM_USER];     /* ppdu level */
+    A_UINT32 rx_ulmumimo_mpdu_ok[HTT_RX_PDEV_MAX_ULMUMIMO_NUM_USER];       /* mpdu level */
+    A_UINT32 rx_ulmumimo_mpdu_fail[HTT_RX_PDEV_MAX_ULMUMIMO_NUM_USER];     /* mpdu level */
 } htt_rx_pdev_rate_stats_tlv;
 
 /* STATS_TYPE : HTT_DBG_EXT_STATS_PDEV_RX_RATE
@@ -3834,5 +3865,69 @@ typedef struct {
         htt_ring_backpressure_stats_tlv backpressure_stats_tlv;
     } r[1]; /* variable-length array */
 } htt_ring_backpressure_stats_t;
+
+#define HTT_LATENCY_PROFILE_MAX_HIST        3
+#define HTT_STATS_MAX_PROF_STATS_NAME_LEN  32
+typedef struct {
+    htt_tlv_hdr_t   tlv_hdr;
+    /* print_header:
+     * This field suggests whether the host should print a header when
+     * displaying the TLV (because this is the first latency_prof_stats
+     * TLV within a series), or if only the TLV contents should be displayed
+     * without a header (because this is not the first TLV within the series).
+     */
+    A_UINT32 print_header;
+    A_UINT8 latency_prof_name[HTT_STATS_MAX_PROF_STATS_NAME_LEN];
+    A_UINT32 cnt; /* number of data values included in the tot sum */
+    A_UINT32 min; /* time in us */
+    A_UINT32 max; /* time in us */
+    A_UINT32 last;
+    A_UINT32 tot; /* time in us */
+    A_UINT32 avg; /* time in us */
+    /* hist_intvl:
+     * Histogram interval, i.e. the latency range covered by each
+     * bin of the histogram, in microsecond units.
+     * hist[0] counts how many latencies were between 0 to hist_intvl
+     * hist[1] counts how many latencies were between hist_intvl to 2*hist_intvl
+     * hist[2] counts how many latencies were more than 2*hist_intvl
+     */
+    A_UINT32 hist_intvl;
+    A_UINT32 hist[HTT_LATENCY_PROFILE_MAX_HIST];
+} htt_latency_prof_stats_tlv;
+
+typedef struct {
+    htt_tlv_hdr_t   tlv_hdr;
+    /* duration:
+     * Time period over which counts were gathered, units = microseconds.
+     */
+    A_UINT32 duration;
+    A_UINT32 tx_msdu_cnt;
+    A_UINT32 tx_mpdu_cnt;
+    A_UINT32 tx_ppdu_cnt;
+    A_UINT32 rx_msdu_cnt;
+    A_UINT32 rx_mpdu_cnt;
+} htt_latency_prof_ctx_tlv;
+
+typedef struct {
+    htt_tlv_hdr_t   tlv_hdr;
+    A_UINT32 prof_enable_cnt; /* count of enabled profiles */
+} htt_latency_prof_cnt_tlv;
+
+/* STATS_TYPE : HTT_DBG_EXT_STATS_LATENCY_PROF_STATS
+ * TLV_TAGS:
+ *      HTT_STATS_LATENCY_PROF_STATS_TAG / htt_latency_prof_stats_tlv
+ *      HTT_STATS_LATENCY_CTX_TAG / htt_latency_prof_ctx_tlv
+ *      HTT_STATS_LATENCY_CNT_TAG / htt_latency_prof_cnt_tlv
+ */
+/* NOTE:
+ * This structure is for documentation, and cannot be safely used directly.
+ * Instead, use the constituent TLV structures to fill/parse.
+ */
+typedef struct {
+    htt_latency_prof_stats_tlv latency_prof_stat;
+    htt_latency_prof_ctx_tlv latency_ctx_stat;
+    htt_latency_prof_cnt_tlv latency_cnt_stat;
+} htt_soc_latency_stats_t;
+
 
 #endif /* __HTT_STATS_H__ */

@@ -2063,6 +2063,8 @@ typedef enum {
 #define WMI_HE_CAP_1X_LTF_400NS_GI_SUPPORT      0x00000001
 #define WMI_HE_CAP_2X_LTF_400NS_GI_SUPPORT      0x00000002
 #define WMI_HE_CAP_2X_LTF_160_80_80_SUPPORT     0x00000004
+#define WMI_HE_CAP_RX_DL_OFDMA_SUPPORT          0x00000018
+#define WMI_HE_CAP_RX_DL_MUMIMO_SUPPORT         0x00000030
 
 #define WMI_HE_CAP_1X_LTF_400NS_GI_SUPPORT_GET(he_cap_info_dword1) \
     WMI_GET_BITS(he_cap_info_dword1, 0, 1)
@@ -2079,6 +2081,16 @@ typedef enum {
 #define WMI_HE_CAP_2X_LTF_160_80_80_SUPPORT_SET(he_cap_info_dword1, value) \
     WMI_SET_BITS(he_cap_info_dword1, 2, 1, value)
 
+#define WMI_HE_CAP_RX_DL_OFDMA_SUPPORT_GET(he_cap_info_dword1) \
+    WMI_GET_BITS(he_cap_info_dword1, 3, 2)
+#define WMI_HE_CAP_RX_DL_OFDMA_SUPPORT_SET(he_cap_info_dword1, value) \
+    WMI_SET_BITS(he_cap_info_dword1, 3, 2, value)
+
+#define WMI_HE_CAP_RX_DL_MUMIMO_SUPPORT_GET(he_cap_info_dword1) \
+    WMI_GET_BITS(he_cap_info_dword1, 5, 2)
+#define WMI_HE_CAP_RX_DL_MUMIMO_SUPPORT_SET(he_cap_info_dword1, value) \
+    WMI_SET_BITS(he_cap_info_dword1, 5, 2, value)
+
 /* Interested readers refer to Rx/Tx MCS Map definition as defined in 802.11ax
  */
 #define WMI_HE_MAX_MCS_4_SS_MASK(r,ss)      ((3 & (r)) << (((ss) - 1) << 1))
@@ -2089,6 +2101,20 @@ enum {
     WMI_HE_FRAG_SUPPORT_LEVEL1, /* support for fragments within a VHT single MPDU, no support for fragments within AMPDU */
     WMI_HE_FRAG_SUPPORT_LEVEL2, /* support for up to 1 fragment per MSDU within a single A-MPDU */
     WMI_HE_FRAG_SUPPORT_LEVEL3, /* support for multiple fragments per MSDU within an A-MPDU */
+};
+
+enum {
+    WMI_HE_RX_DL_OFDMA_SUPPORT_DEFAULT, /* Default */
+    WMI_HE_RX_DL_OFDMA_SUPPORT_DISABLE, /* RX DL OFDMA Support Disabled */
+    WMI_HE_RX_DL_OFDMA_SUPPORT_ENABLE,  /* RX DL OFDMA Support Enabled */
+    WMI_HE_RX_DL_OFDMA_SUPPORT_INVALID, /* INVALID  */
+};
+
+enum {
+    WMI_HE_RX_DL_MUMIMO_SUPPORT_DEFAULT, /* Default */
+    WMI_HE_RX_DL_MUMIMO_SUPPORT_DISABLE, /* RX DL MU-MIMO Support Disabled */
+    WMI_HE_RX_DL_MUMIMO_SUPPORT_ENABLE,  /* RX DL MU-MIMO Support Enabled */
+    WMI_HE_RX_DL_MUMIMO_SUPPORT_INVALID, /* INVALID  */
 };
 
 /** NOTE: This defs cannot be changed in the future without breaking WMI compatibility */
@@ -11523,7 +11549,11 @@ typedef struct {
      * bit 0     : Indicated support for RX 1xLTF + 0.4us
      * bit 1     : Indicates support for RX 2xLTF + 0.4us
      * bit 2     : Indicates support for 2xLTF in 160/80+80 MHz HE PPDU
-     * bit[31:3] : Reserved
+     * bit[4:3]  : Indicates support for DL OFDMA
+     *             Refer to enum WMI_HE_RX_DL_OFDMA_SUPPORT_x
+     * bit[6:5]  : Indicates support for DL MU-MIMO
+     *             Refer to enum WMI_HE_RX_DL_MUMIMO_SUPPORT_x
+     * bit[31:7] : Reserved
      * Refer to WMI_HE_CAP_xx_LTF_xxx_SUPPORT_GET/SET macros
      */
     A_UINT32 peer_he_cap_info_internal;
@@ -24498,11 +24528,11 @@ typedef enum {
 /*
 * Lay out of flags in wmi_wlm_config_cmd_fixed_param
 *
-* |31  17|16 14| 13 | 12 |  11  |  10  |9    8|7    6|5    4|3    2|  1  |  0  |
-* +------+-----+----+----+------+------+------+------+------+------+-----+-----+
-* | RSVD | NSS |EDCA| TRY| SSLP | CSLP | RSVD | Roam | RSVD | DWLT | DFS | SUP |
-* +----------------------+-------------+-------------+-------------------------+
-* |          WAL         |      PS     |     Roam    |         Scan            |
+* |31 19|  18 | 17|16 14| 13 | 12| 11 | 10 |  9  |  8 |7  6|5  4|3  2| 1 | 0 |
+* +-----+-----+---+-----+----+---+----+----+-----+----+----+----+----+---+---+
+* | RSVD|SRATE|RTS| NSS |EDCA|TRY|SSLP|CSLP|DBMPS|RSVD|Roam|RSVD|DWLT|DFS|SUP|
+* +------------------------------+---------------+---------+-----------------+
+* |              WAL             |    PS         |  Roam   |     Scan        |
 *
 * Flag values:
 *     TRY: (1) enable short limit for retrying unacked tx, where the limit is
@@ -24513,6 +24543,10 @@ typedef enum {
 *     NSS: (0) no Nss limits, other than those negotiatied during association
 *          (1) during 2-chain operation, tx only a single spatial stream
 *          (2) - (7) reserved / invalid
+*     RTS: (0) default protection
+*          (1) always enable RTS/CTS protection
+*   SRATE: (0) default secondary rate policy
+*          (1) disable secondary rate
 */
 /* bit 0-3 of flags is used for scan operation */
 /* bit 0: WLM_FLAGS_SCAN_SUPPRESS, suppress all scan and other bits would be ignored if bit is set */
@@ -24589,6 +24623,10 @@ typedef enum {
 #define WLM_FLAGS_WAL_ADJUST_EDCA_SET(flag, val)          WMI_SET_BITS(flag, 13, 1, val)
 #define WLM_FLAGS_WAL_1NSS_ENABLED(flag)                 (WMI_GET_BITS(flag, 14, 3) & 0x1)
 #define WLM_FLAGS_WAL_NSS_SET(flag, val)                  WMI_SET_BITS(flag, 14, 3, val)
+#define WLM_FLAGS_WAL_ALWAYS_RTS_PROTECTION(flag)         WMI_GET_BITS(flag, 17, 1)
+#define WLM_FLAGS_WAL_RTS_PROTECTION_SET(flag, val)       WMI_SET_BITS(flag, 17, 1, val)
+#define WLM_FLAGS_WAL_DISABLE_SECONDARY_RATE(flag)        WMI_GET_BITS(flag, 18, 1)
+#define WLM_FLAGS_WAL_SECONDARY_RATE_SET(flag, val)       WMI_SET_BITS(flag, 18, 1, val)
 
 typedef struct {
     /** TLV tag and len; tag equals
@@ -24880,8 +24918,8 @@ typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUCT_ wmi_chan_rf_characterization_info */
 
     /**
-     * [3:0]  : channel metric -  0 = unusable, 1 = worst, 10 = best
-     * [4:7]  : channel BW -
+     * [7:0]  : channel metric -  0 = unusable, 1 = worst, 100 = best
+     * [11:8] : channel BW -
      *          0 = 20MHz
      *          1 = 40MHz
      *          2 = 80MHz
@@ -24890,37 +24928,37 @@ typedef struct {
      *          11 = 5MHz
      *          12 = 10MHz
      *          (13-15 unused)
-     * [15:8 ]: Reserved
+     * [15:12]: Reserved
      * [31:16]: Frequency - Center frequency of the channel for which
      *          the RF characterisation info applies (MHz)
      */
     A_UINT32 freq_info;
 } WMI_CHAN_RF_CHARACTERIZATION_INFO;
 
-#define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_CHAN_METRIC   0x0000000f
+#define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_CHAN_METRIC   0x000000ff
 #define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_CHAN_METRIC_S 0
-#define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_BW            0x000000f0
-#define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_BW_S          4
+#define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_BW            0x00000f00
+#define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_BW_S          8
 #define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_FREQ          0xffff0000
 #define WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_FREQ_S        16
 
 #define WMI_CHAN_RF_CHARACTERIZATION_CHAN_METRIC_SET(dword,val) \
-            WMI_F_RMW((dword)->freq_info,(val) & 0xff,          \
+            WMI_F_RMW((dword)->freq_info,(val), \
             WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_CHAN_METRIC)
-#define WMI_CHAN_RF_CHARACTERIZATION_CHAN_METRIC_GET(dword)     \
+#define WMI_CHAN_RF_CHARACTERIZATION_CHAN_METRIC_GET(dword) \
             WMI_F_MS((dword)->freq_info,WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_CHAN_METRIC)
 
 #define WMI_CHAN_RF_CHARACTERIZATION_BW_SET(dword, val) \
-            WMI_F_RMW((dword)->freq_info,(val) & 0xf0, \
+            WMI_F_RMW((dword)->freq_info,(val), \
             WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_BW)
-#define WMI_CHAN_RF_CHARACTERIZATION_BW_GET(dword)      \
+#define WMI_CHAN_RF_CHARACTERIZATION_BW_GET(dword) \
             WMI_F_MS((dword)->freq_info,WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_BW)
 
 #define WMI_CHAN_RF_CHARACTERIZATION_FREQ_SET(dword, val) \
-            WMI_F_RMW((dword)->freq_info,(val) & 0xffff, \
+            WMI_F_RMW((dword)->freq_info,(val), \
             WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_FREQ)
 
-#define WMI_CHAN_RF_CHARACTERIZATION_FREQ_GET(dword)      \
+#define WMI_CHAN_RF_CHARACTERIZATION_FREQ_GET(dword) \
             WMI_F_MS((dword)->freq_info,WMI_CHAN_RF_CHARACTERIZATION_FREQ_INFO_FREQ)
 
 
