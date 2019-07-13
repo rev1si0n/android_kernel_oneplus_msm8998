@@ -1854,6 +1854,69 @@ static void wma_set_nan_enable(tp_wma_handle wma_handle,
 #endif
 
 /**
+ * wma_antenna_isolation_event_handler() - antenna isolation event handler
+ * @handle: wma handle
+ * @param: event data
+ * @len: length
+ *
+ * Return: 0 for success or error code
+ */
+static int wma_antenna_isolation_event_handler(void *handle,
+					       u8 *param,
+					       u32 len)
+{
+	struct scheduler_msg cds_msg = {0};
+	wmi_coex_report_isolation_event_fixed_param *event;
+	WMI_COEX_REPORT_ANTENNA_ISOLATION_EVENTID_param_tlvs *param_buf;
+	struct sir_isolation_resp *pisolation;
+	struct mac_context *mac = NULL;
+
+	WMA_LOGD("%s: handle %pK param %pK len %d", __func__,
+		 handle, param, len);
+
+	mac = (struct mac_context *)cds_get_context(QDF_MODULE_ID_PE);
+	if (!mac) {
+		WMA_LOGE("%s: Invalid mac context", __func__);
+		return -EINVAL;
+	}
+
+	pisolation = qdf_mem_malloc(sizeof(*pisolation));
+	if (!pisolation)
+		return 0;
+
+	param_buf =
+		(WMI_COEX_REPORT_ANTENNA_ISOLATION_EVENTID_param_tlvs *)param;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid isolation event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	pisolation->isolation_chain0 = event->isolation_chain0;
+	pisolation->isolation_chain1 = event->isolation_chain1;
+	pisolation->isolation_chain2 = event->isolation_chain2;
+	pisolation->isolation_chain3 = event->isolation_chain3;
+
+	WMA_LOGD("%s: chain1 %d chain2 %d chain3 %d chain4 %d", __func__,
+		 pisolation->isolation_chain0, pisolation->isolation_chain1,
+		 pisolation->isolation_chain2, pisolation->isolation_chain3);
+
+	cds_msg.type = eWNI_SME_ANTENNA_ISOLATION_RSP;
+	cds_msg.bodyptr = pisolation;
+	cds_msg.bodyval = 0;
+	if (QDF_STATUS_SUCCESS !=
+	    scheduler_post_message(QDF_MODULE_ID_WMA,
+				   QDF_MODULE_ID_SME,
+				   QDF_MODULE_ID_SME, &cds_msg)) {
+		WMA_LOGE("%s: could not post peer info rsp msg to SME",
+			 __func__);
+		/* free the mem and return */
+		qdf_mem_free(pisolation);
+	}
+
+	return 0;
+}
+
+/**
  * wma_init_max_no_of_peers - API to initialize wma configuration params
  * @wma_handle: WMA Handle
  * @max_peers: Max Peers supported
@@ -3592,6 +3655,12 @@ QDF_STATUS wma_open(struct wlan_objmgr_psoc *psoc,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 				wmi_report_rx_aggr_failure_event_id,
 				wma_rx_aggr_failure_event_handler,
+				WMA_RX_SERIALIZER_CTX);
+
+	wmi_unified_register_event_handler(
+				wma_handle->wmi_handle,
+				wmi_coex_report_antenna_isolation_event_id,
+				wma_antenna_isolation_event_handler,
 				WMA_RX_SERIALIZER_CTX);
 
 	wma_handle->ito_repeat_count = cds_cfg->ito_repeat_count;
@@ -6301,6 +6370,7 @@ static void wma_print_mac_phy_capabilities(struct wlan_psoc_host_mac_phy_caps
 	WMA_LOGD("\t: cap for hw_mode_id[%d]", cap->hw_mode_id);
 	WMA_LOGD("\t: pdev_id[%d]", cap->pdev_id);
 	WMA_LOGD("\t: phy_id[%d]", cap->phy_id);
+	WMA_LOGD("\t: hw_mode_config_type[%d]", cap->hw_mode_config_type);
 	WMA_LOGD("\t: supports_11b[%d]", cap->supports_11b);
 	WMA_LOGD("\t: supports_11g[%d]", cap->supports_11g);
 	WMA_LOGD("\t: supports_11a[%d]", cap->supports_11a);
@@ -6544,7 +6614,7 @@ static QDF_STATUS wma_update_hw_mode_list(t_wma_handle *wma_handle,
 		/* Update for MAC0 */
 		tmp = &mac_phy_cap[j++];
 		wma_get_hw_mode_params(tmp, &mac0_ss_bw_info);
-		hw_config_type = mac_phy_cap[j].hw_mode_config_type;
+		hw_config_type = tmp->hw_mode_config_type;
 		dbs_mode = HW_MODE_DBS_NONE;
 		sbs_mode = HW_MODE_SBS_NONE;
 		mac1_ss_bw_info.mac_tx_stream = 0;
@@ -8332,6 +8402,9 @@ static QDF_STATUS wma_mc_process_msg(struct scheduler_msg *msg)
 	case WMA_GET_PEER_INFO_EXT:
 		wma_get_peer_info_ext(wma_handle, msg->bodyptr);
 		qdf_mem_free(msg->bodyptr);
+		break;
+	case WMA_GET_ISOLATION:
+		wma_get_isolation(wma_handle);
 		break;
 	case WMA_MODEM_POWER_STATE_IND:
 		wma_notify_modem_power_state(wma_handle,

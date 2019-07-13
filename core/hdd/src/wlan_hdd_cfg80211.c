@@ -111,6 +111,7 @@
 #include <wlan_cp_stats_mc_ucfg_api.h>
 #include "wlan_hdd_object_manager.h"
 #include "wlan_hdd_coex_config.h"
+#include "wlan_hdd_hw_capability.h"
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -1603,12 +1604,15 @@ int wlan_hdd_sap_cfg_dfs_override(struct hdd_adapter *adapter)
 					con_sap_config->acs_cfg.ch_list_count);
 		if (!sap_config->acs_cfg.ch_list) {
 			hdd_err("ACS config alloc fail");
+			sap_config->acs_cfg.ch_list_count = 0;
 			return -ENOMEM;
 		}
 
 		qdf_mem_copy(sap_config->acs_cfg.ch_list,
 					con_sap_config->acs_cfg.ch_list,
 					con_sap_config->acs_cfg.ch_list_count);
+		sap_config->acs_cfg.ch_list_count =
+				con_sap_config->acs_cfg.ch_list_count;
 
 	} else {
 		sap_config->acs_cfg.pri_ch = con_ch;
@@ -2771,9 +2775,11 @@ void wlan_hdd_undo_acs(struct hdd_adapter *adapter)
 	if (adapter == NULL)
 		return;
 	if (adapter->session.ap.sap_config.acs_cfg.ch_list) {
+		hdd_debug("Clear acs cfg channel list");
 		qdf_mem_free(adapter->session.ap.sap_config.acs_cfg.ch_list);
 		adapter->session.ap.sap_config.acs_cfg.ch_list = NULL;
 	}
+	adapter->session.ap.sap_config.acs_cfg.ch_list_count = 0;
 }
 
 /**
@@ -15068,6 +15074,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] = {
 
 	FEATURE_COEX_CONFIG_COMMANDS
 	FEATURE_MPTA_HELPER_COMMANDS
+	FEATURE_HW_CAPABILITY_COMMANDS
 };
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)

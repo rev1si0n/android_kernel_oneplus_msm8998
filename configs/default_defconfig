@@ -70,6 +70,7 @@ ifeq ($(CONFIG_ARCH_QCS405), y)
 	CONFIG_WLAN_SYNC_TSF_PLUS := y
 	CONFIG_WLAN_SYNC_TSF_PLUS_NOIRQ := y
 	CONFIG_RX_PERFORMANCE := y
+	CONFIG_TGT_NUM_MSDU_DESC := 900
 endif
 
 #Flag to enable Legacy Fast Roaming2(LFR2)
@@ -96,6 +97,11 @@ CONFIG_WLAN_FEATURE_SARV1_TO_SARV2 := n
 #Flag to enable set coex configuration
 ifeq ($(CONFIG_ARCH_QCS405), y)
 CONFIG_QCACLD_FEATURE_COEX_CONFIG := y
+endif
+
+#Flag to enable get hw capability
+ifeq ($(CONFIG_ARCH_QCS405), y)
+CONFIG_QCACLD_FEATURE_HW_CAPABILITY := y
 endif
 
 ifeq ($(CONFIG_ARCH_MSM8998), y)

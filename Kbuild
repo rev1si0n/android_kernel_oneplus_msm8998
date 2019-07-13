@@ -180,6 +180,11 @@ endif
 ifeq ($(CONFIG_QCACLD_FEATURE_MPTA_HELPER), y)
 HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_mpta_helper.o
 endif
+
+ifeq ($(CONFIG_QCACLD_FEATURE_HW_CAPABILITY), y)
+HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_hw_capability.o
+endif
+
 ########### HOST DIAG LOG ###########
 HOST_DIAG_LOG_DIR :=	$(WLAN_COMMON_ROOT)/utils/host_diag_log
 
@@ -2067,6 +2072,9 @@ cppflags-$(CONFIG_QCACLD_FEATURE_COEX_CONFIG) += -DFEATURE_COEX_CONFIG
 #Flag to enable MPTA helper feature
 cppflags-$(CONFIG_QCACLD_FEATURE_MPTA_HELPER) += -DFEATURE_MPTA_HELPER
 
+#Flag to enable get hw capability
+cppflags-$(CONFIG_QCACLD_FEATURE_HW_CAPABILITY) += -DFEATURE_HW_CAPABILITY
+
 ifdef CONFIG_SCHED_HISTORY_SIZE
 ccflags-y += -DWLAN_SCHED_HISTORY_SIZE=$(CONFIG_SCHED_HISTORY_SIZE)
 endif
@@ -2096,6 +2104,9 @@ ifdef CONFIG_CFG_NUM_RX_IND_RECORD
 ccflags-y += -DOL_RX_INDICATION_MAX_RECORDS=$(CONFIG_CFG_NUM_RX_IND_RECORD)
 endif
 
+ifdef CONFIG_TGT_NUM_MSDU_DESC
+ccflags-y += -DCFG_TGT_NUM_MSDU_DESC=$(CONFIG_TGT_NUM_MSDU_DESC)
+endif
 
 KBUILD_CPPFLAGS += $(cppflags-y)
 
