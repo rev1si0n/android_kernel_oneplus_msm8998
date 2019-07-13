@@ -1141,6 +1141,8 @@ ucfg_scan_set_wide_band_scan(struct wlan_objmgr_pdev *pdev, bool enable)
 	}
 	pdev_id = wlan_objmgr_pdev_get_pdev_id(pdev);
 	scan_obj = wlan_pdev_get_scan_obj(pdev);
+	if (!scan_obj)
+		return QDF_STATUS_E_FAILURE;
 
 	scm_debug("set wide_band_scan to %d", enable);
 	scan_obj->pdev_info[pdev_id].wide_band_scan = enable;
@@ -1159,6 +1161,8 @@ bool ucfg_scan_get_wide_band_scan(struct wlan_objmgr_pdev *pdev)
 	}
 	pdev_id = wlan_objmgr_pdev_get_pdev_id(pdev);
 	scan_obj = wlan_pdev_get_scan_obj(pdev);
+	if (!scan_obj)
+		return QDF_STATUS_E_FAILURE;
 
 	return scan_obj->pdev_info[pdev_id].wide_band_scan;
 }
@@ -1435,6 +1439,10 @@ ucfg_scan_register_event_handler(struct wlan_objmgr_pdev *pdev,
 
 	scan = wlan_pdev_get_scan_obj(pdev);
 	pdev_ev_handler = wlan_pdev_get_pdev_scan_ev_handlers(pdev);
+	if (!pdev_ev_handler) {
+		scm_err("null pdev_ev_handler");
+		return QDF_STATUS_E_NULL_VALUE;
+	}
 	cb_handler = &(pdev_ev_handler->cb_handlers[0]);
 
 	qdf_spin_lock_bh(&scan->lock);
@@ -1569,6 +1577,9 @@ ucfg_scan_unregister_event_handler(struct wlan_objmgr_pdev *pdev,
 	}
 	scan = wlan_pdev_get_scan_obj(pdev);
 	pdev_ev_handler = wlan_pdev_get_pdev_scan_ev_handlers(pdev);
+	if (!pdev_ev_handler)
+		return;
+
 	cb_handler = &(pdev_ev_handler->cb_handlers[0]);
 
 	qdf_spin_lock_bh(&scan->lock);
