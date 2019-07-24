@@ -117,6 +117,9 @@ all.config
 # fetched Android config fragments
 android/configs/android-*.cfg
 
+# Clang's compilation database file
+/compile_commands.json
+
 #
 #Ignoring Android.bp link file
 #
