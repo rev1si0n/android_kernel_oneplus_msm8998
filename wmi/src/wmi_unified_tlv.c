@@ -528,21 +528,18 @@ static QDF_STATUS send_vdev_start_cmd_tlv(wmi_unified_t wmi_handle,
 		cmd->flags |= WMI_UNIFIED_VDEV_START_BCN_TX_RATE_PRESENT;
 
 	if (!req->is_restart) {
-		cmd->beacon_interval = req->beacon_intval;
-		cmd->dtim_period = req->dtim_period;
-
-		/* Copy the SSID */
-		if (req->ssid.length) {
-			if (req->ssid.length < sizeof(cmd->ssid.ssid))
-				cmd->ssid.ssid_len = req->ssid.length;
-			else
-				cmd->ssid.ssid_len = sizeof(cmd->ssid.ssid);
-			qdf_mem_copy(cmd->ssid.ssid, req->ssid.mac_ssid,
-				     cmd->ssid.ssid_len);
-		}
-
 		if (req->pmf_enabled)
 			cmd->flags |= WMI_UNIFIED_VDEV_START_PMF_ENABLED;
+	}
+
+	/* Copy the SSID */
+	if (req->ssid.length) {
+		if (req->ssid.length < sizeof(cmd->ssid.ssid))
+			cmd->ssid.ssid_len = req->ssid.length;
+		else
+			cmd->ssid.ssid_len = sizeof(cmd->ssid.ssid);
+		qdf_mem_copy(cmd->ssid.ssid, req->ssid.mac_ssid,
+			     cmd->ssid.ssid_len);
 	}
 
 	if (req->hidden_ssid)
@@ -13022,6 +13019,10 @@ void wmi_copy_resource_config(wmi_resource_config *resource_cfg,
 		WMI_RSRC_CFG_FLAG_TX_COMPLETION_TX_TSF64_ENABLE_SET(
 						resource_cfg->flag1, 1);
 
+	if (tgt_res_cfg->three_way_coex_config_legacy_en)
+		WMI_RSRC_CFG_FLAG_THREE_WAY_COEX_CONFIG_LEGACY_SUPPORT_SET(
+						resource_cfg->flag1, 1);
+
 	wmi_copy_twt_resource_config(resource_cfg, tgt_res_cfg);
 }
 
@@ -17235,24 +17236,30 @@ static QDF_STATUS extract_ndp_ind_tlv(wmi_unified_t wmi_handle,
 	WMI_LOGD("ndp_app_info - %d bytes",
 			fixed_params->ndp_app_info_len);
 
-	rsp->ndp_config.ndp_cfg_len = fixed_params->ndp_cfg_len;
-	rsp->ndp_info.ndp_app_info_len = fixed_params->ndp_app_info_len;
 	rsp->ncs_sk_type = fixed_params->nan_csid;
-	rsp->scid.scid_len = fixed_params->nan_scid_len;
+	if (event->ndp_cfg) {
+		rsp->ndp_config.ndp_cfg_len = fixed_params->ndp_cfg_len;
+		if (rsp->ndp_config.ndp_cfg_len > NDP_QOS_INFO_LEN)
+			rsp->ndp_config.ndp_cfg_len = NDP_QOS_INFO_LEN;
+		qdf_mem_copy(rsp->ndp_config.ndp_cfg, event->ndp_cfg,
+			     rsp->ndp_config.ndp_cfg_len);
+	}
 
-	if (rsp->ndp_config.ndp_cfg_len > NDP_QOS_INFO_LEN)
-		rsp->ndp_config.ndp_cfg_len = NDP_QOS_INFO_LEN;
-	qdf_mem_copy(rsp->ndp_config.ndp_cfg, event->ndp_cfg,
-		     rsp->ndp_config.ndp_cfg_len);
+	if (event->ndp_app_info) {
+		rsp->ndp_info.ndp_app_info_len = fixed_params->ndp_app_info_len;
+		if (rsp->ndp_info.ndp_app_info_len > NDP_APP_INFO_LEN)
+			rsp->ndp_info.ndp_app_info_len = NDP_APP_INFO_LEN;
+		qdf_mem_copy(rsp->ndp_info.ndp_app_info, event->ndp_app_info,
+			     rsp->ndp_info.ndp_app_info_len);
+	}
 
-	if (rsp->ndp_info.ndp_app_info_len > NDP_APP_INFO_LEN)
-		rsp->ndp_info.ndp_app_info_len = NDP_APP_INFO_LEN;
-	qdf_mem_copy(rsp->ndp_info.ndp_app_info, event->ndp_app_info,
-		     rsp->ndp_info.ndp_app_info_len);
-
-	if (rsp->scid.scid_len > NDP_SCID_BUF_LEN)
-		rsp->scid.scid_len = NDP_SCID_BUF_LEN;
-	qdf_mem_copy(rsp->scid.scid, event->ndp_scid, rsp->scid.scid_len);
+	if (event->ndp_scid) {
+		rsp->scid.scid_len = fixed_params->nan_scid_len;
+		if (rsp->scid.scid_len > NDP_SCID_BUF_LEN)
+			rsp->scid.scid_len = NDP_SCID_BUF_LEN;
+		qdf_mem_copy(rsp->scid.scid, event->ndp_scid,
+			     rsp->scid.scid_len);
+	}
 
 	if (event->ndp_transport_ip_param &&
 	    event->num_ndp_transport_ip_param) {
@@ -23945,6 +23952,8 @@ static void populate_tlv_service(uint32_t *wmi_service)
 				WMI_SERVICE_STA_PLUS_STA_SUPPORT;
 	wmi_service[wmi_service_tx_compl_tsf64] =
 			WMI_SERVICE_TX_COMPL_TSF64;
+	wmi_service[wmi_service_three_way_coex_config_legacy] =
+			WMI_SERVICE_THREE_WAY_COEX_CONFIG_LEGACY;
 }
 
 #ifndef CONFIG_MCL
