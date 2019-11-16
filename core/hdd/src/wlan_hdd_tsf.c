@@ -366,7 +366,7 @@ static enum hdd_tsf_op_result hdd_indicate_tsf_internal(
 /* to distinguish 32-bit overflow case, this inverval should:
  * equal or less than (1/2 * OVERFLOW_INDICATOR32 us)
  */
-#define WLAN_HDD_CAPTURE_TSF_INTERVAL_SEC 10
+#define WLAN_HDD_CAPTURE_TSF_INTERVAL_SEC 4
 #define OVERFLOW_INDICATOR32 (((int64_t)0x1) << 32)
 #define CAP_TSF_TIMER_FIX_SEC 1
 
@@ -851,10 +851,6 @@ static void hdd_update_timestamp(struct hdd_adapter *adapter)
 		 */
 		interval = (WLAN_HDD_CAPTURE_TSF_INTERVAL_SEC -
 			    CAP_TSF_TIMER_FIX_SEC) * MSEC_PER_SEC;
-		if (adapter->device_mode == QDF_SAP_MODE ||
-		    adapter->device_mode == QDF_P2P_GO_MODE) {
-			interval *= WLAN_HDD_SOFTAP_INTERVEL_TIMES;
-		}
 
 		adapter->continuous_error_count = 0;
 		hdd_debug("ts-pair updated: interval: %d",
@@ -1224,6 +1220,7 @@ enum hdd_tsf_op_result hdd_netbuf_timestamp(qdf_nbuf_t netbuf,
 {
 	struct hdd_adapter *adapter;
 	struct net_device *net_dev = netbuf->dev;
+	struct skb_shared_hwtstamps hwtstamps;
 
 	if (!net_dev)
 		return HDD_TSF_OP_FAIL;
@@ -1236,7 +1233,9 @@ enum hdd_tsf_op_result hdd_netbuf_timestamp(qdf_nbuf_t netbuf,
 		int32_t ret = hdd_get_soctime_from_tsf64time(adapter,
 				tsf64_time, &soc_time);
 		if (!ret) {
-			netbuf->tstamp = soc_time;
+			hwtstamps.hwtstamp = soc_time;
+			*skb_hwtstamps(netbuf) = hwtstamps;
+			netbuf->tstamp = ktime_set(0, 0);
 			return HDD_TSF_OP_SUCC;
 		}
 	}
@@ -1288,7 +1287,7 @@ int hdd_tx_timestamp(qdf_nbuf_t netbuf, uint64_t target_time)
 	if (!sk)
 		return -EINVAL;
 
-	if ((skb_shinfo(netbuf)->tx_flags & SKBTX_SW_TSTAMP) &&
+	if ((skb_shinfo(netbuf)->tx_flags & SKBTX_HW_TSTAMP) &&
 	    !(skb_shinfo(netbuf)->tx_flags & SKBTX_IN_PROGRESS)) {
 		struct sock_exterr_skb *serr;
 		qdf_nbuf_t new_netbuf;
@@ -1325,7 +1324,7 @@ int hdd_rx_timestamp(qdf_nbuf_t netbuf, uint64_t target_time)
 		return 0;
 
 	/* reset tstamp when failed */
-	netbuf->tstamp = ns_to_ktime(0);
+	netbuf->tstamp = ktime_set(0, 0);
 	return -EINVAL;
 }
 

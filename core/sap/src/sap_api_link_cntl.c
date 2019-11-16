@@ -350,7 +350,10 @@ wlansap_roam_process_ch_change_success(tpAniSirGlobal mac_ctx,
 	} else if (is_ch_dfs) {
 		if ((false == mac_ctx->sap.SapDfsInfo.ignore_cac)
 		    && (eSAP_DFS_DO_NOT_SKIP_CAC ==
-			mac_ctx->sap.SapDfsInfo.cac_state)) {
+			mac_ctx->sap.SapDfsInfo.cac_state) &&
+		    policy_mgr_get_dfs_master_dynamic_enabled(
+					mac_ctx->psoc,
+					sap_ctx->sessionId)) {
 			sap_ctx->fsm_state = SAP_INIT;
 			QDF_TRACE(QDF_MODULE_ID_SAP, QDF_TRACE_LEVEL_INFO_MED,
 				  "%s: %d: sapdfs: from state SAP_STOPPING => DISCONNECTED with ignore cac false on sapctx[%pK]",
@@ -776,7 +779,6 @@ wlansap_roam_callback(void *ctx, struct csr_roam_info *csr_roam_info,
 	tHalHandle hal;
 	tpAniSirGlobal mac_ctx = NULL;
 	uint8_t intf;
-	bool sta_sap_scc_on_dfs_chan;
 
 	if (QDF_IS_STATUS_ERROR(wlansap_context_get(ctx)))
 		return QDF_STATUS_E_FAILURE;
@@ -794,9 +796,6 @@ wlansap_roam_callback(void *ctx, struct csr_roam_info *csr_roam_info,
 	QDF_TRACE(QDF_MODULE_ID_SAP, QDF_TRACE_LEVEL_INFO_HIGH,
 			FL("roam_status = %d, roam_result = %d"),
 			roam_status, roam_result);
-
-	sta_sap_scc_on_dfs_chan =
-		policy_mgr_is_sta_sap_scc_allowed_on_dfs_chan(mac_ctx->psoc);
 
 	switch (roam_status) {
 	case eCSR_ROAM_INFRA_IND:
@@ -880,7 +879,8 @@ wlansap_roam_callback(void *ctx, struct csr_roam_info *csr_roam_info,
 			  "Received Radar Indication on sap ch %d, session %d",
 			  sap_ctx->channel, sap_ctx->sessionId);
 
-		if (sta_sap_scc_on_dfs_chan) {
+		if (!policy_mgr_get_dfs_master_dynamic_enabled(
+				mac_ctx->psoc, sap_ctx->sessionId)) {
 			QDF_TRACE(QDF_MODULE_ID_SAP,
 				  QDF_TRACE_LEVEL_DEBUG,
 				  FL("Ignore the Radar indication"));
@@ -1184,7 +1184,8 @@ wlansap_roam_callback(void *ctx, struct csr_roam_info *csr_roam_info,
 
 		break;
 	case eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND:
-		if (sta_sap_scc_on_dfs_chan)
+		if (!policy_mgr_get_dfs_master_dynamic_enabled(
+				mac_ctx->psoc, sap_ctx->sessionId))
 			break;
 		wlansap_roam_process_dfs_radar_found(mac_ctx, sap_ctx,
 						&qdf_ret_status);
@@ -1247,9 +1248,11 @@ void sap_scan_event_callback(struct wlan_objmgr_vdev *vdev,
 {
 	uint32_t scan_id;
 	uint8_t session_id;
+	QDF_STATUS status;
 	bool success = false;
 	eCsrScanStatus scan_status = eCSR_SCAN_FAILURE;
 	tHalHandle hal_handle;
+	struct sap_context *sap_ctx = arg;
 
 	session_id = wlan_vdev_get_id(vdev);
 	scan_id = event->scan_id;
@@ -1260,6 +1263,22 @@ void sap_scan_event_callback(struct wlan_objmgr_vdev *vdev,
 		return;
 	}
 
+	/*
+	 * It may happen that the SAP was deleted before the scan
+	 * cb was called. Here the sap context which was passed as an
+	 * arg to the ACS cb is used after free then, and there is no way
+	 * currently to validate the pointer. Now try get vdev ref before
+	 * the weight calculation algo kicks in, and return if the
+	 * reference cannot be taken to avoid use after free for SAP-context
+	 */
+	status = wlan_objmgr_vdev_try_get_ref(vdev, WLAN_LEGACY_MAC_ID);
+	if (QDF_IS_STATUS_ERROR(status)) {
+		QDF_TRACE(QDF_MODULE_ID_SAP, QDF_TRACE_LEVEL_ERROR,
+			  FL("Hotspot fail, vdev ref get error"));
+		return;
+	}
+	wlan_objmgr_vdev_release_ref(vdev, WLAN_LEGACY_MAC_ID);
+
 	qdf_mtrace(QDF_MODULE_ID_SCAN, QDF_MODULE_ID_SAP, event->type,
 		   event->vdev_id, event->scan_id);
 
@@ -1269,7 +1288,12 @@ void sap_scan_event_callback(struct wlan_objmgr_vdev *vdev,
 	if (success)
 		scan_status = eCSR_SCAN_SUCCESS;
 
+	if (!sap_ctx->acs_ch_list_protect)
+		return;
+
+	qdf_mutex_acquire(sap_ctx->acs_ch_list_protect);
 	wlansap_pre_start_bss_acs_scan_callback(hal_handle,
 						arg, session_id,
 						scan_id, scan_status);
+	qdf_mutex_release(sap_ctx->acs_ch_list_protect);
 }

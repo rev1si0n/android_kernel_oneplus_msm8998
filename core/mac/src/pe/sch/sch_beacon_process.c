@@ -45,7 +45,7 @@
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 #include "host_diag_core_log.h"
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
-
+#include "wlan_mlme_main.h"
 #include "wma.h"
 /**
  * Number of bytes of variation in beacon length from the last beacon
@@ -1088,6 +1088,65 @@ void sch_beacon_process_for_ap(tpAniSirGlobal mac_ctx,
 	}
 }
 
+#ifdef WLAN_BCN_RECV_FEATURE
+/*
+ * sch_send_beacon_report() - To Fill beacon report for
+ * each beacon coming from connected peer and sends it
+ * to upper layer
+ * @mac_ctx: Mac context
+ * @beacon_struct: Pointing to beacon structure
+ * @session: pointer to the PE session
+ *
+ * Return: None
+ */
+static
+void sch_send_beacon_report(struct sAniSirGlobal *mac_ctx,
+			    struct sSirProbeRespBeacon *beacon_struct,
+			    struct sPESession *session)
+{
+	struct wlan_beacon_report beacon_report;
+
+	if (!mac_ctx->lim.sme_bcn_rcv_callback)
+		return;
+
+	if (!LIM_IS_STA_ROLE(session))
+		return;
+
+	if (sir_compare_mac_addr(session->bssId, beacon_struct->bssid)) {
+		/* Prepare beacon report from incoming beacon */
+		qdf_mem_copy(beacon_report.bssid.bytes, beacon_struct->bssid,
+			     sizeof(tSirMacAddr));
+
+		qdf_mem_copy(&beacon_report.time_stamp,
+			     &beacon_struct->timeStamp, sizeof(qdf_time_t));
+		beacon_report.beacon_interval = beacon_struct->beaconInterval;
+		beacon_report.frequency =
+				cds_chan_to_freq(beacon_struct->channelNumber);
+
+		beacon_report.ssid.length = beacon_struct->ssId.length;
+		qdf_mem_copy(&beacon_report.ssid.ssid,
+			     &beacon_struct->ssId.ssId,
+			     beacon_report.ssid.length);
+
+		beacon_report.boot_time =
+				qdf_do_div(qdf_get_monotonic_boottime(),
+					   QDF_MC_TIMER_TO_MS_UNIT);
+
+		/* Send report to upper layer */
+		mac_ctx->lim.sme_bcn_rcv_callback(mac_ctx->hdd_handle,
+						  &beacon_report);
+	}
+}
+
+#else
+static inline
+void sch_send_beacon_report(struct sAniSirGlobal *mac_ctx,
+			    struct sSirProbeRespBeacon *beacon_struct,
+			    struct sPESession *session)
+{
+}
+#endif
+
 /**
  * sch_beacon_process() - process the beacon frame
  * @mac_ctx: mac global context
@@ -1113,11 +1172,13 @@ sch_beacon_process(tpAniSirGlobal mac_ctx, uint8_t *rx_pkt_info,
 	 * Now process the beacon in the context of the BSS which is
 	 * transmitting the beacons, if one is found
 	 */
-	if (session == NULL)
+	if (!session) {
 		__sch_beacon_process_no_session(mac_ctx, &bcn, rx_pkt_info);
-	else
+	} else {
+		sch_send_beacon_report(mac_ctx, &bcn, session);
 		__sch_beacon_process_for_session(mac_ctx, &bcn, rx_pkt_info,
 						 session);
+	}
 }
 
 /**
@@ -1135,6 +1196,9 @@ sch_beacon_edca_process(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca,
 			tpPESession session)
 {
 	uint8_t i;
+	struct wlan_objmgr_vdev *vdev;
+	struct vdev_mlme_priv_obj *vdev_mlme;
+	bool follow_ap_edca = false;
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 	host_log_qos_edca_pkt_type *log_ptr = NULL;
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
@@ -1148,7 +1212,17 @@ sch_beacon_edca_process(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca,
 	session->gLimEdcaParams[EDCA_AC_VI] = edca->acvi;
 	session->gLimEdcaParams[EDCA_AC_VO] = edca->acvo;
 
-	if (pMac->roam.configParam.enable_edca_params) {
+	vdev = wlan_objmgr_get_vdev_by_id_from_psoc(pMac->psoc,
+						    session->smeSessionId,
+						    WLAN_LEGACY_MAC_ID);
+	if (vdev) {
+		vdev_mlme = wlan_vdev_mlme_get_priv_obj(vdev);
+		if (vdev_mlme)
+			follow_ap_edca = vdev_mlme->follow_ap_edca;
+		wlan_objmgr_vdev_release_ref(vdev, WLAN_LEGACY_MAC_ID);
+	}
+
+	if (pMac->roam.configParam.enable_edca_params && !follow_ap_edca) {
 		session->gLimEdcaParams[EDCA_AC_VO].aci.aifsn =
 			pMac->roam.configParam.edca_vo_aifs;
 		session->gLimEdcaParams[EDCA_AC_VI].aci.aifsn =

@@ -214,6 +214,24 @@ struct wlan_mlme_chain_cfg {
 	uint8_t max_rx_chains_5g;
 };
 
+/**
+ * struct wlan_beacon_report - Beacon info to be send to userspace
+ * @ssid: ssid present in beacon
+ * @bssid: bssid present in beacon
+ * @frequency: channel frequency in MHz
+ * @beacon_interval: Interval between two consecutive beacons
+ * @time_stamp: time stamp at which beacon received from AP
+ * @boot_time: Boot time when beacon received
+ */
+struct wlan_beacon_report {
+	struct wlan_ssid ssid;
+	struct qdf_mac_addr bssid;
+	uint32_t frequency;
+	uint16_t beacon_interval;
+	qdf_time_t time_stamp;
+	qdf_time_t boot_time;
+};
+
 /* / Result codes Firmware return to Host SW */
 typedef enum eSirResultCodes {
 	eSIR_SME_SUCCESS,
@@ -2867,6 +2885,14 @@ struct mawc_params {
 	uint8_t mawc_roam_rssi_low_adjust;
 };
 
+/**
+ * struct roam_sync_timeout_timer_info - Info related to roam sync timer
+ * @vdev_id: Vdev id for which host waiting roam sync ind from fw
+ */
+struct roam_sync_timeout_timer_info {
+	uint8_t vdev_id;
+};
+
 typedef struct sSirRoamOffloadScanReq {
 	uint16_t message_type;
 	uint16_t length;
@@ -2952,6 +2978,7 @@ typedef struct sSirRoamOffloadScanReq {
 	bool bss_load_trig_enabled;
 	struct wmi_bss_load_config bss_load_config;
 	bool roaming_scan_policy;
+	uint32_t full_roam_scan_period;
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 
 typedef struct sSirRoamOffloadScanRsp {

@@ -270,7 +270,8 @@ QDF_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
 QDF_STATUS wma_roam_scan_offload_scan_period(tp_wma_handle wma_handle,
 					     uint32_t scan_period,
 					     uint32_t scan_age,
-					     uint32_t vdev_id);
+					     uint32_t vdev_id,
+					     uint32_t roam_full_scan_period);
 
 QDF_STATUS wma_roam_scan_offload_rssi_change(tp_wma_handle wma_handle,
 					     uint32_t vdev_id,
@@ -1463,4 +1464,14 @@ int wma_roam_scan_stats_event_handler(void *handle, uint8_t *event,
  */
 int wma_cold_boot_cal_event_handler(void *wma_ctx, uint8_t *event_buff,
 				    uint32_t len);
+
+/**
+ * wma_set_roam_triggers() - Send roam trigger bitmap to WMI
+ * @wma_handle: wma handle
+ * @triggers: Carries vdev id and roam trigger bitmap.
+ *
+ * Return: Success or Failure status
+ */
+QDF_STATUS wma_set_roam_triggers(tp_wma_handle wma_handle,
+				 struct roam_triggers *triggers);
 #endif

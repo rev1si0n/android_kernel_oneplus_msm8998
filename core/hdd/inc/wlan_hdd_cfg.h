@@ -575,6 +575,32 @@ enum hdd_dot11_mode {
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MAX          (60000)
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_DEFAULT      (20000)
 
+/**
+ * <ini>
+ * gFullRoamScanPeriod - Set full roam scan refresh period
+ * @Min: 0
+ * @Max: 600
+ * @Default: 0
+ *
+ * This ini is used by firmware to set full roam scan period in secs.
+ * Full roam scan period is the minimum idle period in seconds between two
+ * successive full channel roam scans. If this is configured as a non-zero,
+ * full roam scan will be triggered for every configured interval.
+ * If this configured as 0, full roam scan will not be triggered at all.
+ *
+ * Related: None
+ *
+ * Supported Feature: LFR Scan
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_FULL_ROAM_SCAN_REFRESH_PERIOD_NAME         "gFullRoamScanPeriod"
+#define CFG_FULL_ROAM_SCAN_REFRESH_PERIOD_MIN          (0)
+#define CFG_FULL_ROAM_SCAN_REFRESH_PERIOD_MAX          (600)
+#define CFG_FULL_ROAM_SCAN_REFRESH_PERIOD_DEFAULT      (0)
+
 /*
  * <ini>
  * gEmptyScanRefreshPeriod - Set empty scan refresh period
@@ -642,12 +668,21 @@ enum hdd_dot11_mode {
 
 /*
  * <ini>
- * wake_lock_in_user_scan - use wake lock during user scan
+ * wake_lock_in_user_scan - use to acquire wake lock during user scan
  * @Min: 0
  * @Max: 1
  * @Default: 0
  *
  * This ini is used to define if wake lock is held used during user scan req
+ * This INI is added for a specific OEM on their request, who don’t want to
+ * use PNO offload scan (sched scans). This is useful only if PNO scan offload
+ * is disabled. If PNO scan is enabled this INI should be disabled and its
+ * by default disabled intentionally.
+ * This is used to acquire wake lock to handle the case where PNO scan offload
+ * is disabled so that wlan is not suspended during scan before connect and
+ * thus scan is not aborted in between. In case PNO scan is offloaded, the FW
+ * will take care of connect scans and will wake up host when candidate is found
+ *
  *
  * Related: Scan
  *
@@ -1868,7 +1903,7 @@ enum hdd_dot11_mode {
 #define CFG_FORCE_1X1_NAME      "gForce1x1Exception"
 #define CFG_FORCE_1X1_MIN       (0)
 #define CFG_FORCE_1X1_MAX       (2)
-#define CFG_FORCE_1X1_DEFAULT   (2)
+#define CFG_FORCE_1X1_DEFAULT   (1)
 
 /*
  * <ini>
@@ -7299,6 +7334,11 @@ enum hdd_link_speed_rpt_type {
 #define CFG_IPA_LOW_BANDWIDTH_MBPS_MAX           (100)
 #define CFG_IPA_LOW_BANDWIDTH_MBPS_DEFAULT       (100)
 
+#define CFG_IPA_FORCE_VOTING_ENABLE              "gIPAForceVotingEnable"
+#define CFG_IPA_FORCE_VOTING_ENABLE_MIN          (0)
+#define CFG_IPA_FORCE_VOTING_ENABLE_MAX          (1)
+#define CFG_IPA_FORCE_VOTING_ENABLE_DEFAULT      (0)
+
 /*
  * Firmware uart print
  */
@@ -8240,6 +8280,63 @@ enum hdd_link_speed_rpt_type {
 #define CFG_WLAN_LOGGING_CONSOLE_SUPPORT_ENABLE  (1)
 #define CFG_WLAN_LOGGING_CONSOLE_SUPPORT_DISABLE (0)
 #define CFG_WLAN_LOGGING_CONSOLE_SUPPORT_DEFAULT (1)
+
+/*
+ * <ini>
+ * host_log_custom_nl_proto - Host log netlink protocol
+ * @Min: 0
+ * @Max: 32
+ * @Default: 2
+ *
+ * This ini is used to set host log netlink protocol. The default
+ * value is 2 (NETLINK_USERSOCK), customer should avoid selecting the
+ * netlink protocol that already used on their platform by other
+ * applications or services. By choosing the non-default value(2),
+ * Customer need to change the netlink protocol of application receive
+ * tool(cnss_diag) accordingly. Available values could be:
+ *
+ * host_log_custom_nl_proto = 0 -	NETLINK_ROUTE, Routing/device hook
+ * host_log_custom_nl_proto = 1 -	NETLINK_UNUSED, Unused number
+ * host_log_custom_nl_proto = 2 -	NETLINK_USERSOCK, Reserved for user
+ *					mode socket protocols
+ * host_log_custom_nl_proto = 3 -	NETLINK_FIREWALL, Unused number,
+ *					formerly ip_queue
+ * host_log_custom_nl_proto = 4 -	NETLINK_SOCK_DIAG, socket monitoring
+ * host_log_custom_nl_proto = 5 -	NETLINK_NFLOG, netfilter/iptables ULOG
+ * host_log_custom_nl_proto = 6 -	NETLINK_XFRM, ipsec
+ * host_log_custom_nl_proto = 7 -	NETLINK_SELINUX, SELinux event
+ *					notifications
+ * host_log_custom_nl_proto = 8 -	NETLINK_ISCSI, Open-iSCSI
+ * host_log_custom_nl_proto = 9 -	NETLINK_AUDIT, auditing
+ * host_log_custom_nl_proto = 10 -	NETLINK_FIB_LOOKUP
+ * host_log_custom_nl_proto = 11 -	NETLINK_CONNECTOR
+ * host_log_custom_nl_proto = 12 -	NETLINK_NETFILTER, netfilter subsystem
+ * host_log_custom_nl_proto = 13 -	NETLINK_IP6_FW
+ * host_log_custom_nl_proto = 14 -	NETLINK_DNRTMSG, DECnet routing messages
+ * host_log_custom_nl_proto = 15 -	NETLINK_KOBJECT_UEVENT, Kernel
+ *					messages to userspace
+ * host_log_custom_nl_proto = 16 -	NETLINK_GENERIC, leave room for
+ *					NETLINK_DM (DM Events)
+ * host_log_custom_nl_proto = 18 -	NETLINK_SCSITRANSPORT, SCSI Transports
+ * host_log_custom_nl_proto = 19 -	NETLINK_ECRYPTFS
+ * host_log_custom_nl_proto = 20 -	NETLINK_RDMA
+ * host_log_custom_nl_proto = 21 -	NETLINK_CRYPTO, Crypto layer
+ * host_log_custom_nl_proto = 22 -	NETLINK_SMC, SMC monitoring
+ *
+ * The max value is: MAX_LINKS which is 32
+ *
+ * Related: None
+ *
+ * Supported Feature: STA
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+#define CFG_HOST_LOG_CUSTOM_NETLINK_PROTO    "host_log_custom_nl_proto"
+#define CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_MIN           (0)
+#define CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_MAX           (32)
+#define CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_DEFAULT       (2)
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
 
 #ifdef WLAN_FEATURE_LPSS
@@ -9914,14 +10011,18 @@ enum dot11p_mode {
  * g_sta_sap_scc_on_dfs_chan - Allow STA+SAP SCC on DFS channel with master
  * mode support disabled.
  * @Min: 0
- * @Max: 1
+ * @Max: 2
  * @Default: 0
  *
  * This ini is used to allow STA+SAP SCC on DFS channel with master mode
- * support disabled.
+ * support disabled, the value is defined by enum PM_AP_DFS_MASTER_MODE.
  * 0 - Disallow STA+SAP SCC on DFS channel
  * 1 - Allow STA+SAP SCC on DFS channel with master mode disabled
- *
+ * 2 - enhance "1" with below requirement
+ *	 a. Allow single SAP (GO) start on DFS channel.
+ *	 b. Allow CAC process on DFS channel in single SAP (GO) mode
+ *	 c. Allow DFS radar event process in single SAP (GO) mode
+ *	 d. Disallow CAC and radar event process in SAP (GO) + STA mode.
  * Related: None.
  *
  * Supported Feature: Non-DBS, DBS
@@ -10639,7 +10740,7 @@ enum dot11p_mode {
 #define CFG_BUG_ON_REINIT_FAILURE_NAME     "g_bug_on_reinit_failure"
 #define CFG_BUG_ON_REINIT_FAILURE_MIN      (0)
 #define CFG_BUG_ON_REINIT_FAILURE_MAX      (1)
-#define CFG_BUG_ON_REINIT_FAILURE_DEFAULT  (1)
+#define CFG_BUG_ON_REINIT_FAILURE_DEFAULT  (0)
 
 /*
  * <ini>
@@ -15417,6 +15518,36 @@ enum hdd_external_acs_policy {
 #define CFG_ACTION_OUI_DISABLE_AGGRESSIVE_TX_NAME "gActionOUIDisableAggressiveTX"
 #define CFG_ACTION_OUI_DISABLE_AGGRESSIVE_TX_DEFAULT "FFFFFF 00 2A F85971000000 E0 50 FFFFFF 00 2A 14ABC5000000 E0 50"
 
+/*
+ * <ini>
+ * gActionOUIDisableAggressiveEDCA - Used to specify action OUIs to control
+ * EDCA configuration when join the candidate AP
+ *
+ * @Default: NULL
+ * Note: User should strictly add new action OUIs at the end of this
+ * default value.
+ *
+ * This ini is used to specify AP OUIs. The station's EDCA should follow the
+ * APs' when connecting to those AP, even if the gEnableEdcaParams is set.
+ * For example, it follows the AP's EDCA whose OUI is 0050F2 with the
+ * following setting:
+ *     gActionOUIDisableAggressiveEDCA=0050F2 00 01
+ *          Explain: 0050F2: OUI
+ *                   00: data length is 0
+ *                   01: info mask, only OUI present in Info mask
+ * Refer to gEnableActionOUI for more detail about the format.
+ *
+ * Related: gEnableEdcaParams, gEnableActionOUI
+ *
+ * Supported Feature: Action OUIs
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_ACTION_OUI_DISABLE_AGGRESSIVE_EDCA "gActionOUIDisableAggressiveEDCA"
+#define CFG_ACTION_OUI_DISABLE_AGGRESSIVE_EDCA_DEFAULT ""
+
 /* End of action oui inis */
 
 
@@ -16162,6 +16293,38 @@ enum hdd_external_acs_policy {
 #define CFG_ENABLE_RTT_SUPPORT_MAX        (1)
 
 /*
+ * <ini>
+ * ignore_fw_reg_offload_ind - If set, Ignore the FW offload indication
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to ignore regdb offload indication from FW and
+ * regulatory will be treated as non offload.
+ * There is a case where FW is sending the offload indication in
+ * service ready event but not sending the cc list event
+ * WMI_REG_CHAN_LIST_CC_EVENTID and because of this driver is not
+ * able to populate the channel list. To address this issue, this ini
+ * is added. If this ini is enabled, regulatory will always be treated as
+ * non offload solution.
+ *
+ * This ini should only be enabled to circumvent the above mentioned firmware
+ * bug.
+ *
+ * Related: None
+ *
+ * Supported Feature: STA/AP
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_IGNORE_FW_REG_OFFLOAD_IND            "ignore_fw_reg_offload_ind"
+#define CFG_IGNORE_FW_REG_OFFLOAD_IND_DEFAULT    (0)
+#define CFG_IGNORE_FW_REG_OFFLOAD_IND_MIN        (0)
+#define CFG_IGNORE_FW_REG_OFFLOAD_IND_MAX        (1)
+
+/*
  * Type declarations
  */
 
@@ -16564,6 +16727,7 @@ struct hdd_config {
 	uint32_t IpaHighBandwidthMbps;
 	uint32_t IpaMediumBandwidthMbps;
 	uint32_t IpaLowBandwidthMbps;
+	bool IpaForceVoting;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 	uint32_t WlanMccToSccSwitchMode;
 #endif
@@ -16678,6 +16842,7 @@ struct hdd_config {
 	/* WLAN Logging */
 	bool wlan_logging_enable;
 	bool wlan_logging_to_console;
+	uint8_t host_log_custom_nl_proto;
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
 
 #ifdef WLAN_FEATURE_LPSS
@@ -17131,6 +17296,9 @@ struct hdd_config {
 	uint32_t bss_load_sample_time;
 
 	bool enable_beacon_reception_stats;
+
+	bool ignore_fw_reg_offload_ind;
+	uint32_t roam_full_scan_period;
 };
 
 #define VAR_OFFSET(_Struct, _Var) (offsetof(_Struct, _Var))
