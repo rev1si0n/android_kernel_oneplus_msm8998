@@ -992,8 +992,6 @@ static void csr_neighbor_roam_info_ctx_init(
 		ngbr_roam_info->cfgParams.nRoamBmissFinalBcnt;
 	ngbr_roam_info->currentRoamBeaconRssiWeight =
 		ngbr_roam_info->cfgParams.nRoamBeaconRssiWeight;
-	ngbr_roam_info->cfgParams.enable_scoring_for_roam =
-		pMac->roam.configParam.bss_score_params.enable_scoring_for_roam;
 	/*
 	 * Restore the inactivity params only if roam_control is not
 	 * enabled. If roam_control is enabled, the params will be restored
@@ -1001,6 +999,8 @@ static void csr_neighbor_roam_info_ctx_init(
 	 * the same.
 	 */
 	if (!ngbr_roam_info->roam_control_enable) {
+		ngbr_roam_info->cfgParams.enable_scoring_for_roam =
+		pMac->roam.configParam.bss_score_params.enable_scoring_for_roam;
 		ngbr_roam_info->cfgParams.roam_scan_inactivity_time =
 			pMac->roam.configParam.roam_scan_inactivity_time;
 		ngbr_roam_info->cfgParams.roam_inactive_data_packet_count =
@@ -1127,9 +1127,9 @@ QDF_STATUS csr_neighbor_roam_indicate_connect(
 	/* Bail out if this is NOT a STA persona */
 	if (pMac->roam.roamSession[session_id].pCurRoamProfile->csrPersona !=
 	QDF_STA_MODE) {
-		sme_err("Ignoring Connect ind received from a non STA. session_id: %d, csrPersonna %d",
-			session_id,
-			(int)session->pCurRoamProfile->csrPersona);
+		sme_debug("Ignoring Connect ind received from a non STA. session_id: %d, csrPersonna %d",
+			  session_id,
+			  (int)session->pCurRoamProfile->csrPersona);
 		return QDF_STATUS_SUCCESS;
 	}
 	/* if a concurrent session is running */
@@ -1339,8 +1339,7 @@ QDF_STATUS csr_neighbor_roam_init(tpAniSirGlobal pMac, uint8_t sessionId)
 		pMac->roam.configParam.neighborRoamConfig.
 			nhi_rssi_scan_rssi_ub;
 	pNeighborRoamInfo->cfgParams.roam_rssi_diff =
-		pMac->roam.configParam.neighborRoamConfig.
-			roam_rssi_diff;
+		pMac->roam.configParam.RoamRssiDiff;
 
 	qdf_zero_macaddr(&pNeighborRoamInfo->currAPbssid);
 	pNeighborRoamInfo->currentNeighborLookupThreshold =

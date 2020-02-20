@@ -373,7 +373,7 @@ static int __wlan_hdd_cfg80211_process_ndp_cmd(struct wiphy *wiphy,
 	}
 
 	if (!WLAN_HDD_IS_NDP_ENABLED(hdd_ctx)) {
-		hdd_err_rl("NAN datapath is not enabled");
+		hdd_debug("NAN datapath is not enabled");
 		return -EPERM;
 	}
 	/* NAN data path coexists only with STA interface */
@@ -700,6 +700,10 @@ void hdd_ndi_drv_ndi_create_rsp_handler(uint8_t vdev_id,
 				    hdd_ctx->config->ndp_inactivity_timeout,
 				    VDEV_CMD);
 
+		sme_cli_set_command(vdev_id,
+				    WMI_VDEV_PARAM_NDP_KEEPALIVE_TIMEOUT,
+				    hdd_ctx->config->ndp_keep_alive_period,
+				    VDEV_CMD);
 	} else {
 		hdd_alert("NDI interface creation failed with reason %d",
 			ndi_rsp->reason /* create_reason */);

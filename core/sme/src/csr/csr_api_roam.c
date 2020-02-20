@@ -1688,12 +1688,12 @@ void csr_roam_substate_change(tpAniSirGlobal pMac,
 			  sessionId);
 		return;
 	}
+	if (pMac->roam.curSubState[sessionId] == NewSubstate)
+		return;
 	sme_debug("CSR RoamSubstate: [ %s <== %s ]",
 		mac_trace_getcsr_roam_sub_state(NewSubstate),
 		mac_trace_getcsr_roam_sub_state(pMac->roam.
 		curSubState[sessionId]));
-	if (pMac->roam.curSubState[sessionId] == NewSubstate)
-		return;
 	spin_lock(&pMac->roam.roam_state_lock);
 	pMac->roam.curSubState[sessionId] = NewSubstate;
 	spin_unlock(&pMac->roam.roam_state_lock);
@@ -1705,22 +1705,23 @@ enum csr_roam_state csr_roam_state_change(tpAniSirGlobal pMac,
 {
 	enum csr_roam_state PreviousState;
 
-	sme_debug("CSR RoamState[%hu]: [ %s <== %s ]", sessionId,
-		mac_trace_getcsr_roam_state(NewRoamState),
-		mac_trace_getcsr_roam_state(pMac->roam.curState[sessionId]));
 	PreviousState = pMac->roam.curState[sessionId];
+	if (NewRoamState == pMac->roam.curState[sessionId])
+		 return PreviousState;
 
-	if (NewRoamState != pMac->roam.curState[sessionId]) {
-		/* Whenever we transition OUT of the Roaming state,
-		 * clear the Roaming substate.
-		 */
-		if (CSR_IS_ROAM_JOINING(pMac, sessionId)) {
-			csr_roam_substate_change(pMac, eCSR_ROAM_SUBSTATE_NONE,
-						 sessionId);
-		}
-
-		pMac->roam.curState[sessionId] = NewRoamState;
+	sme_debug("CSR RoamState[%hu]: [ %s <== %s ]", sessionId,
+		  mac_trace_getcsr_roam_state(NewRoamState),
+		  mac_trace_getcsr_roam_state(pMac->roam.curState[sessionId]));
+	/* Whenever we transition OUT of the Roaming state,
+	 * clear the Roaming substate.
+	 */
+	if (CSR_IS_ROAM_JOINING(pMac, sessionId)) {
+		csr_roam_substate_change(pMac, eCSR_ROAM_SUBSTATE_NONE,
+					 sessionId);
 	}
+
+	pMac->roam.curState[sessionId] = NewRoamState;
+
 	return PreviousState;
 }
 
@@ -1729,7 +1730,6 @@ void csr_assign_rssi_for_category(tpAniSirGlobal pMac, int8_t bestApRssi,
 {
 	int i;
 
-	sme_debug("best AP RSSI: %d cat offset: %d", bestApRssi, catOffset);
 	if (catOffset) {
 		pMac->roam.configParam.bCatRssiOffset = catOffset;
 		for (i = 0; i < CSR_NUM_RSSI_CAT; i++) {
@@ -3116,66 +3116,7 @@ QDF_STATUS csr_change_default_config_param(tpAniSirGlobal pMac,
 		qdf_mem_copy(&pMac->roam.configParam.neighborRoamConfig,
 			     &pParam->neighborRoamConfig,
 			     sizeof(tCsrNeighborRoamConfigParams));
-		sme_debug("nNeighborScanTimerPerioid: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nNeighborScanTimerPeriod);
-		sme_debug("neighbor_scan_min_timer_period: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			neighbor_scan_min_timer_period);
-		sme_debug("nNeighborLookupRssiThreshold: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nNeighborLookupRssiThreshold);
-		sme_debug("rssi_thresh_offset_5g: %d",
-			pMac->roam.configParam.neighborRoamConfig.rssi_thresh_offset_5g);
-		sme_debug("nOpportunisticThresholdDiff: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nOpportunisticThresholdDiff);
-		sme_debug("nRoamRescanRssiDiff: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nRoamRescanRssiDiff);
-		sme_debug("nNeighborScanMinChanTime: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nNeighborScanMinChanTime);
-		sme_debug("nNeighborScanMaxChanTime: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nNeighborScanMaxChanTime);
-		sme_debug("nMaxNeighborRetries: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nMaxNeighborRetries);
-		sme_debug("nNeighborResultsRefreshPeriod: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nNeighborResultsRefreshPeriod);
-		sme_debug("nEmptyScanRefreshPeriod: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nEmptyScanRefreshPeriod);
-		{
-			int i;
 
-			sme_debug("Num of Channels in CFG Channel List: %d",
-				pMac->roam.configParam.neighborRoamConfig.
-				neighborScanChanList.numChannels);
-			for (i = 0;
-			     i <
-			     pMac->roam.configParam.neighborRoamConfig.
-			     neighborScanChanList.numChannels; i++) {
-				sme_debug("%d ",
-					pMac->roam.configParam.
-					neighborRoamConfig.neighborScanChanList.
-					channelList[i]);
-			}
-		}
-		sme_debug("nRoamBmissFirstBcnt: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nRoamBmissFirstBcnt);
-		sme_debug("nRoamBmissFinalBcnt: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nRoamBmissFinalBcnt);
-		sme_debug("nRoamBeaconRssiWeight: %d",
-			pMac->roam.configParam.neighborRoamConfig.
-			nRoamBeaconRssiWeight);
-		sme_debug("full_scan_period: %u",
-			  pMac->roam.configParam.neighborRoamConfig.
-			  full_roam_scan_period);
 		pMac->roam.configParam.addTSWhenACMIsOff =
 			pParam->addTSWhenACMIsOff;
 		pMac->scan.fEnableBypass11d = pParam->fEnableBypass11d;
@@ -3184,6 +3125,7 @@ QDF_STATUS csr_change_default_config_param(tpAniSirGlobal pMac,
 		pMac->roam.configParam.fScanTwice = pParam->fScanTwice;
 		pMac->scan.fFirstScanOnly2GChnl = pParam->fFirstScanOnly2GChnl;
 		pMac->scan.max_scan_count = pParam->max_scan_count;
+
 		/* This parameter is not available in cfg and not passed from
 		 * upper layers. Instead it is initialized here This parametere
 		 * is used in concurrency to determine if there are concurrent
@@ -3651,15 +3593,6 @@ QDF_STATUS csr_get_config_param(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 	qdf_mem_copy(&pParam->neighborRoamConfig,
 		     &cfg_params->neighborRoamConfig,
 		     sizeof(tCsrNeighborRoamConfigParams));
-	sme_debug("Num of Channels in CFG Channel List: %d",
-		cfg_params->neighborRoamConfig.
-		neighborScanChanList.numChannels);
-	for (i = 0; i < cfg_params->neighborRoamConfig.
-	     neighborScanChanList.numChannels; i++) {
-		sme_debug("%d ",
-			cfg_params->neighborRoamConfig.
-			neighborScanChanList.channelList[i]);
-	}
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 	pParam->cc_switch_mode = cfg_params->cc_switch_mode;
@@ -4568,24 +4501,23 @@ static void csr_dump_connection_stats(tpAniSirGlobal mac_ctx,
 	     diag_enc_type_from_csr_type(conn_profile->EncryptionType);
 	conn_stats.result_code = (u2 == eCSR_ROAM_RESULT_ASSOCIATED) ? 1 : 0;
 	conn_stats.reason_code = 0;
-	sme_debug("+---------CONNECTION INFO START------------+");
-	sme_debug("connection stats for session-id: %d", session->sessionId);
-	sme_debug("ssid: %.*s", conn_stats.ssid_len, conn_stats.ssid);
-	sme_debug("bssid: %pM", conn_stats.bssid);
-	sme_debug("rssi: %d dBm", conn_stats.rssi);
-	sme_debug("channel: %d", conn_stats.operating_channel);
-	sme_debug("dot11Mode: %s",
-		  csr_get_dot11_mode_str(conn_stats.dot11mode));
-	sme_debug("channel bw: %s",
-		  csr_get_ch_width_str(conn_stats.chnl_bw));
-	sme_debug("Qos enable: %d", conn_stats.qos_capability);
-	sme_debug("Auth-type: %s",
-		  csr_get_auth_type_str(conn_stats.auth_type));
-	sme_debug("Encry-type: %s",
-		  csr_get_encr_type_str(conn_stats.encryption_type));
-	sme_debug("is associated?: %s",
-		  (conn_stats.result_code ? "yes" : "no"));
-	sme_debug("+---------CONNECTION INFO END------------+");
+	sme_nofl_debug("+---------CONNECTION INFO START------------+");
+	sme_nofl_debug("VDEV-ID: %d self_mac:%pM", session->sessionId,
+		       session->selfMacAddr.bytes);
+	sme_nofl_debug("ssid: %.*s bssid: %pM RSSI: %d dBm",
+		       conn_stats.ssid_len, conn_stats.ssid,
+		       conn_stats.bssid, conn_stats.rssi);
+	sme_nofl_debug("Channel : %d channel_bw: %s dot11Mode: %s",
+		       conn_stats.operating_channel,
+		       csr_get_ch_width_str(conn_stats.chnl_bw),
+		       csr_get_dot11_mode_str(conn_stats.dot11mode));
+	sme_nofl_debug("AKM: %s Encry-type: %s",
+		       csr_get_auth_type_str(conn_profile->AuthType),
+		       csr_get_encr_type_str(conn_stats.encryption_type));
+	sme_nofl_debug("Qos enable: %d | Associated: %s",
+		       conn_stats.qos_capability,
+		       (conn_stats.result_code ? "yes" : "no"));
+	sme_nofl_debug("+---------CONNECTION INFO END------------+");
 
 	WLAN_HOST_DIAG_EVENT_REPORT(&conn_stats, EVENT_WLAN_CONN_STATS_V2);
 }
@@ -8268,7 +8200,7 @@ static void csr_process_fils_join_rsp(tpAniSirGlobal mac_ctx,
 					roam_info->fils_join_rsp->tk_len,
 					roam_info->fils_join_rsp->tk, 0);
 	if (!QDF_IS_STATUS_SUCCESS(status)) {
-		sme_err("Set context for unicast fail");
+		sme_debug("Set context for unicast fail");
 		goto process_fils_join_rsp_fail;
 	}
 	return;
@@ -9296,9 +9228,7 @@ QDF_STATUS csr_roam_issue_connect(tpAniSirGlobal pMac, uint32_t sessionId,
 		/* We need to free the BssList when the command is done */
 		pCommand->u.roamCmd.fReleaseBssList = true;
 		pCommand->u.roamCmd.fUpdateCurRoamProfile = true;
-		QDF_TRACE(QDF_MODULE_ID_SME, QDF_TRACE_LEVEL_DEBUG,
-			 FL("CSR PERSONA=%d"),
-			  pCommand->u.roamCmd.roamProfile.csrPersona);
+
 		status = csr_queue_sme_command(pMac, pCommand, fImediate);
 		if (!QDF_IS_STATUS_SUCCESS(status)) {
 			sme_err("fail to send message status: %d", status);
@@ -9447,7 +9377,7 @@ static void csr_roam_print_candidate_aps(tScanResultHandle results)
 	while (entry) {
 		bss_desc = GET_BASE_ADDR(entry,
 				struct tag_csrscan_result, Link);
-		sme_debug("BSSID" MAC_ADDRESS_STR "score is %d",
+		sme_debug(MAC_ADDRESS_STR " score: %d",
 			  MAC_ADDR_ARRAY(bss_desc->Result.BssDescriptor.bssId),
 			  bss_desc->bss_score);
 
@@ -9490,11 +9420,10 @@ QDF_STATUS csr_roam_connect(tpAniSirGlobal pMac, uint32_t sessionId,
 	pSession->join_bssid_count = 0;
 	pSession->discon_in_progress = false;
 	pSession->is_fils_connection = csr_is_fils_connection(pProfile);
-	sme_debug(
-		"called  BSSType = %s (%d) authtype = %d  encryType = %d",
-		sme_bss_type_to_string(pProfile->BSSType),
-		pProfile->BSSType, pProfile->AuthType.authType[0],
-		pProfile->EncryptionType.encryptionType[0]);
+	sme_debug("Persona %d authtype %d  encryType %d mc_encType %d",
+		  pProfile->csrPersona, pProfile->AuthType.authType[0],
+		  pProfile->EncryptionType.encryptionType[0],
+		  pProfile->mcEncryptionType.encryptionType[0]);
 	csr_roam_cancel_roaming(pMac, sessionId);
 	csr_scan_abort_mac_scan(pMac, sessionId, INVAL_SCAN_ID);
 	csr_roam_remove_duplicate_command(pMac, sessionId, NULL, eCsrHddIssued);
@@ -9572,7 +9501,6 @@ QDF_STATUS csr_roam_connect(tpAniSirGlobal pMac, uint32_t sessionId,
 		goto end;
 	}
 	status = csr_scan_get_result(pMac, pScanFilter, &hBSSList);
-	sme_debug("csr_scan_get_result Status: %d", status);
 	csr_roam_print_candidate_aps(hBSSList);
 	if (QDF_IS_STATUS_SUCCESS(status)) {
 		/* check if set hw mode needs to be done */
@@ -9649,8 +9577,6 @@ QDF_STATUS csr_roam_connect(tpAniSirGlobal pMac, uint32_t sessionId,
 				sme_err("CSR failed to issue SSID scan cmd with status: 0x%08X",
 					status);
 				fCallCallback = true;
-			} else {
-				sme_debug("SSID scan requested");
 			}
 		}
 	} else {
@@ -10151,7 +10077,6 @@ QDF_STATUS csr_roam_save_connected_information(tpAniSirGlobal pMac,
 		return QDF_STATUS_E_FAILURE;
 	}
 
-	sme_debug("session id: %d", sessionId);
 	pConnectProfile = &pSession->connectedProfile;
 	if (pConnectProfile->pAddIEAssoc) {
 		qdf_mem_free(pConnectProfile->pAddIEAssoc);
@@ -10355,7 +10280,8 @@ static void csr_roam_join_rsp_processor(tpAniSirGlobal pMac,
 	if (pEntry)
 		pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
 
-	sme_debug("is_fils_connection %d", pSmeJoinRsp->is_fils_connection);
+	if (pSmeJoinRsp->is_fils_connection)
+		sme_debug("Fils connection");
 	/* Copy Sequence Number last used for FILS assoc failure case */
 	if (session_ptr->is_fils_connection)
 		session_ptr->fils_seq_num = pSmeJoinRsp->fils_seq_num;
@@ -10370,8 +10296,6 @@ static void csr_roam_join_rsp_processor(tpAniSirGlobal pMac,
 		}
 
 		session_ptr->supported_nss_1x1 = pSmeJoinRsp->supported_nss_1x1;
-		sme_debug("SME session supported nss: %d",
-			  session_ptr->supported_nss_1x1);
 
 		/*
 		 * The join bssid count can be reset as soon as
@@ -10490,9 +10414,6 @@ static QDF_STATUS csr_roam_issue_join(tpAniSirGlobal pMac, uint32_t sessionId,
 				      uint32_t roamId)
 {
 	QDF_STATUS status;
-
-	sme_debug("Attempting to Join Bssid= " MAC_ADDRESS_STR,
-		MAC_ADDR_ARRAY(pSirBssDesc->bssId));
 
 	/* Set the roaming substate to 'join attempt'... */
 	csr_roam_substate_change(pMac, eCSR_ROAM_SUBSTATE_JOIN_REQ, sessionId);
@@ -10661,8 +10582,6 @@ csr_roaming_state_config_cnf_processor(tpAniSirGlobal mac_ctx,
 		return;
 	}
 
-	/* we have active entry */
-	sme_debug("Cfg sequence complete");
 	/*
 	 * Successfully set the configuration parameters for the new Bss.
 	 * Attempt to join the roaming Bss
@@ -12695,10 +12614,11 @@ csr_roam_chk_lnk_disassoc_ind(tpAniSirGlobal mac_ctx, tSirSmeRsp *msg_ptr)
 		return;
 	}
 
-	sme_err("DISASSOCIATION from peer =" MAC_ADDRESS_STR "reason: %d status: %d session: %d",
-		MAC_ADDR_ARRAY(pDisassocInd->peer_macaddr.bytes),
-		pDisassocInd->reasonCode,
-		pDisassocInd->statusCode, sessionId);
+	sme_nofl_info("disassoc from peer " MAC_ADDRESS_STR
+		      "reason: %d status: %d vid: %d",
+		      MAC_ADDR_ARRAY(pDisassocInd->peer_macaddr.bytes),
+		      pDisassocInd->reasonCode,
+		      pDisassocInd->statusCode, sessionId);
 	/*
 	 * If we are in neighbor preauth done state then on receiving
 	 * disassoc or deauth we dont roam instead we just disassoc
@@ -16335,10 +16255,6 @@ static void csr_set_mgmt_enc_type(struct csr_roam_profile *profile,
 				  tDot11fBeaconIEs *ies,
 				  tSirSmeJoinReq *csr_join_req)
 {
-	sme_debug("mgmt encryption type %d MFPe %d MFPr %d",
-		 profile->mgmt_encryption_type,
-		 profile->MFPEnabled, profile->MFPRequired);
-
 	if (profile->MFPEnabled)
 		csr_join_req->MgmtEncryptionType =
 					profile->mgmt_encryption_type;
@@ -16389,9 +16305,10 @@ static void csr_update_fils_connection_info(struct csr_roam_profile *profile,
 
 #ifdef WLAN_FEATURE_SAE
 /*
- * csr_update_sae_config: Copy SAE info to join request
- * @profile: pointer to profile
+ * csr_update_sae_config() - Copy SAE info to join request
  * @csr_join_req: csr join request
+ * @mac: mac context
+ * @session: sme session
  *
  * Return: None
  */
@@ -16407,9 +16324,11 @@ static void csr_update_sae_config(tSirSmeJoinReq *csr_join_req,
 	csr_join_req->sae_pmk_cached =
 	       csr_lookup_pmkid_using_bssid(mac, session, &pmkid_cache, &index);
 
-	sme_debug("pmk_cached %d for BSSID=" MAC_ADDRESS_STR,
-		csr_join_req->sae_pmk_cached,
-		MAC_ADDR_ARRAY(csr_join_req->bssDescription.bssId));
+	if (!csr_join_req->sae_pmk_cached)
+		return;
+
+	sme_debug("Found for BSSID=" QDF_MAC_ADDR_STR,
+		  QDF_MAC_ADDR_ARRAY(csr_join_req->bssDescription.bssId));
 }
 #else
 static void csr_update_sae_config(tSirSmeJoinReq *csr_join_req,
@@ -16456,42 +16375,6 @@ static uint8_t csr_get_nss_supported_by_sta_and_ap(tDot11fIEVHTCaps *vht_caps,
 	}
 
 	return 1;
-}
-
-/**
- * csr_dump_vendor_ies() - Dumps all the vendor IEs
- * @ie:         ie buffer
- * @ie_len:     length of ie buffer
- *
- * This function dumps the vendor IEs present in the AP's IE buffer
- *
- * Return: none
- */
-static
-void csr_dump_vendor_ies(uint8_t *ie, uint16_t ie_len)
-{
-	int32_t left = ie_len;
-	uint8_t *ptr = ie;
-	uint8_t elem_id, elem_len;
-
-	while (left >= 2) {
-		elem_id  = ptr[0];
-		elem_len = ptr[1];
-		left -= 2;
-		if (elem_len > left) {
-			sme_err("Invalid IEs eid: %d elem_len: %d left: %d",
-				elem_id, elem_len, left);
-			return;
-		}
-		if (elem_id == SIR_MAC_EID_VENDOR) {
-			sme_debug("Dumping Vendor IE of len %d", elem_len);
-			QDF_TRACE_HEX_DUMP(QDF_MODULE_ID_PE,
-					   QDF_TRACE_LEVEL_DEBUG,
-					   &ptr[2], elem_len);
-		}
-		left -= elem_len;
-		ptr += (elem_len + 2);
-	}
 }
 
 /**
@@ -16692,13 +16575,14 @@ QDF_STATUS csr_send_join_req_msg(tpAniSirGlobal pMac, uint32_t sessionId,
 		}
 		qdf_mem_copy(&csr_join_req->selfMacAddr, &pSession->selfMacAddr,
 			     sizeof(tSirMacAddr));
-		sme_err("vdevid-%d: Connecting to ssid:%.*s bssid: "MAC_ADDRESS_STR" rssi: %d channel: %d country_code: %c%c",
-			sessionId, csr_join_req->ssId.length,
-			csr_join_req->ssId.ssId,
-			MAC_ADDR_ARRAY(pBssDescription->bssId),
-			pBssDescription->rssi, pBssDescription->channelId,
-			pMac->scan.countryCodeCurrent[0],
-			pMac->scan.countryCodeCurrent[1]);
+		sme_nofl_info("vdev-%d: Connecting to %.*s " MAC_ADDRESS_STR
+			      " rssi: %d channel: %d CC: %c%c",
+			      sessionId, csr_join_req->ssId.length,
+			      csr_join_req->ssId.ssId,
+			      MAC_ADDR_ARRAY(pBssDescription->bssId),
+			      pBssDescription->rssi, pBssDescription->channelId,
+			      pMac->scan.countryCodeCurrent[0],
+			      pMac->scan.countryCodeCurrent[1]);
 		/* bsstype */
 		dwTmp = csr_translate_bsstype_to_mac_type
 						(pProfile->BSSType);
@@ -16745,10 +16629,6 @@ QDF_STATUS csr_send_join_req_msg(tpAniSirGlobal pMac, uint32_t sessionId,
 			pSession->supported_nss_1x1 = true;
 
 		ieLen = csr_get_ielen_from_bss_description(pBssDescription);
-
-		/* Dump the Vendor Specific IEs*/
-		csr_dump_vendor_ies((uint8_t *)&pBssDescription->ieFields[0],
-				    ieLen);
 
 		/* Fill the Vendor AP search params */
 		vendor_ap_search_attr.ie_data =
@@ -16863,10 +16743,6 @@ QDF_STATUS csr_send_join_req_msg(tpAniSirGlobal pMac, uint32_t sessionId,
 		csr_join_req->nss = pSession->nss;
 		csr_join_req->nss_forced_1x1 = pSession->nss_forced_1x1;
 		csr_join_req->dot11mode = (uint8_t) ucDot11Mode;
-		sme_debug("dot11mode=%d, uCfgDot11Mode=%d nss=%d",
-			  csr_join_req->dot11mode,
-			  pSession->bssParams.uCfgDot11Mode,
-			  csr_join_req->nss);
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 		csr_join_req->cc_switch_mode =
 			pMac->roam.configParam.cc_switch_mode;
@@ -16876,9 +16752,6 @@ QDF_STATUS csr_send_join_req_msg(tpAniSirGlobal pMac, uint32_t sessionId,
 		csr_join_req->cbMode = (uint8_t) pSession->bssParams.cbMode;
 		csr_join_req->force_24ghz_in_ht20 =
 			pProfile->force_24ghz_in_ht20;
-		sme_debug("CSR PERSONA: %d CSR CbMode: %d force 24gh ht20 %d",
-			  pProfile->csrPersona, pSession->bssParams.cbMode,
-			  csr_join_req->force_24ghz_in_ht20);
 		pSession->uapsd_mask = pProfile->uapsd_mask;
 		status =
 			csr_get_rate_set(pMac, pProfile,
@@ -17489,7 +17362,6 @@ QDF_STATUS csr_send_join_req_msg(tpAniSirGlobal pMac, uint32_t sessionId,
 		}
 
 		if (pProfile->csrPersona == QDF_STA_MODE) {
-			sme_debug("Invoking packetdump register API");
 			wlan_register_txrx_packetdump();
 			packetdump_timer_status = qdf_mc_timer_start(
 						&pMac->roam.packetdump_timer,
@@ -17497,15 +17369,13 @@ QDF_STATUS csr_send_join_req_msg(tpAniSirGlobal pMac, uint32_t sessionId,
 						QDF_MC_TIMER_TO_SEC_UNIT)/
 						QDF_MC_TIMER_TO_MS_UNIT);
 			if (!QDF_IS_STATUS_SUCCESS(packetdump_timer_status))
-				sme_err("cannot start packetdump timer status: %d",
-					packetdump_timer_status);
+				sme_debug("cannot start packetdump timer status: %d",
+					  packetdump_timer_status);
 		}
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
 		if (eWNI_SME_JOIN_REQ == messageType) {
 			/* Notify QoS module that join happening */
 			pSession->join_bssid_count++;
-			QDF_TRACE(QDF_MODULE_ID_SME, QDF_TRACE_LEVEL_DEBUG,
-				"BSSID Count: %d", pSession->join_bssid_count);
 			sme_qos_csr_event_ind(pMac, (uint8_t) sessionId,
 						SME_QOS_CSR_JOIN_REQ, NULL);
 		} else if (eWNI_SME_REASSOC_REQ == messageType)
@@ -21327,6 +21197,8 @@ static void csr_update_score_params(tpAniSirGlobal mac_ctx,
 		bss_score_params->roam_score_delta;
 	req_score_params->roam_trigger_bitmap =
 		bss_score_params->roam_score_delta_bitmap;
+	req_score_params->cand_min_roam_score_delta =
+		bss_score_params->cand_min_roam_score_delta;
 
 	req_rssi_score->best_rssi_threshold = rssi_score->best_rssi_threshold;
 	req_rssi_score->good_rssi_threshold = rssi_score->good_rssi_threshold;
@@ -22017,7 +21889,6 @@ void csr_release_command(tpAniSirGlobal mac_ctx, tSmeCmd *sme_cmd)
 	qdf_mem_zero(&cmd_info,
 			sizeof(struct wlan_serialization_queued_cmd_info));
 
-	sme_debug("filled cmd_id = %d", sme_cmd->cmd_id);
 	cmd_info.cmd_id = sme_cmd->cmd_id;
 	cmd_info.req_type = WLAN_SER_CANCEL_NON_SCAN_CMD;
 	cmd_info.cmd_type = csr_get_cmd_type(sme_cmd);
@@ -22027,19 +21898,15 @@ void csr_release_command(tpAniSirGlobal mac_ctx, tSmeCmd *sme_cmd)
 	cmd.cmd_type = cmd_info.cmd_type;
 	cmd.vdev = cmd_info.vdev;
 	if (wlan_serialization_is_cmd_present_in_active_queue(
-				mac_ctx->psoc, &cmd)) {
-		sme_debug("Releasing active cmd_id[%d] cmd_type[%d]",
-				cmd_info.cmd_id, cmd_info.cmd_type);
+				mac_ctx->psoc, &cmd))
 		wlan_serialization_remove_cmd(&cmd_info);
-	} else if (wlan_serialization_is_cmd_present_in_pending_queue(
-				mac_ctx->psoc, &cmd)) {
-		sme_debug("Releasing pending cmd_id[%d] cmd_type[%d]",
-				cmd_info.cmd_id, cmd_info.cmd_type);
+	else if (wlan_serialization_is_cmd_present_in_pending_queue(
+				mac_ctx->psoc, &cmd))
 		wlan_serialization_cancel_request(&cmd_info);
-	} else {
+	else
 		sme_debug("can't find cmd_id[%d] cmd_type[%d]",
-				cmd_info.cmd_id, cmd_info.cmd_type);
-	}
+			  cmd_info.cmd_id, cmd_info.cmd_type);
+
 	if (cmd_info.vdev)
 		wlan_objmgr_vdev_release_ref(cmd_info.vdev, WLAN_LEGACY_SME_ID);
 }
@@ -22174,13 +22041,11 @@ QDF_STATUS csr_set_serialization_params_to_cmd(tpAniSirGlobal mac_ctx,
 	 */
 	sme_cmd->cmd_id = csr_get_monotonous_number(mac_ctx);
 	cmd->cmd_id = sme_cmd->cmd_id;
-	sme_debug("cmd_id = %d", cmd->cmd_id);
 
 	cmd->cmd_type = csr_get_cmd_type(sme_cmd);
-	sme_debug("filled cmd_type[%d] cmd_id[%d]",
-		cmd->cmd_type, cmd->cmd_id);
 	if (cmd->cmd_type == WLAN_SER_CMD_MAX) {
-		sme_err("serialization enum not found");
+		sme_err("serialization enum not found for sme_cmd type %d",
+			sme_cmd->command);
 		return status;
 	}
 	cmd->vdev = wlan_objmgr_get_vdev_by_id_from_psoc(mac_ctx->psoc,
@@ -22241,7 +22106,6 @@ QDF_STATUS csr_queue_sme_command(tpAniSirGlobal mac_ctx, tSmeCmd *sme_cmd,
 
 	vdev = cmd.vdev;
 	ser_cmd_status = wlan_serialization_request(&cmd);
-	sme_debug("wlan_serialization_request status:%d", ser_cmd_status);
 
 	switch (ser_cmd_status) {
 	case WLAN_SER_CMD_PENDING:
@@ -22249,13 +22113,9 @@ QDF_STATUS csr_queue_sme_command(tpAniSirGlobal mac_ctx, tSmeCmd *sme_cmd,
 		/* Command posted to active/pending list */
 		status = QDF_STATUS_SUCCESS;
 		break;
-	case WLAN_SER_CMD_DENIED_LIST_FULL:
-	case WLAN_SER_CMD_DENIED_RULES_FAILED:
-	case WLAN_SER_CMD_DENIED_UNSPECIFIED:
-		status = QDF_STATUS_E_FAILURE;
-		goto error;
 	default:
-		QDF_ASSERT(0);
+		sme_err("Failed to queue command %d with status:%d",
+			sme_cmd->command, ser_cmd_status);
 		status = QDF_STATUS_E_FAILURE;
 		goto error;
 	}
@@ -23238,7 +23098,7 @@ fail:
 			"Malloc fail: Fail to send response to SME");
 		return;
 	}
-	sme_err("Sending set HW fail response to SME");
+	sme_debug("Sending set HW fail response to SME");
 	param->status = SET_HW_MODE_STATUS_ECANCELED;
 	param->cfgd_hw_mode_index = 0;
 	param->num_vdev_mac_entries = 0;
@@ -23901,7 +23761,7 @@ static QDF_STATUS csr_process_roam_sync_callback(tpAniSirGlobal mac_ctx,
 	/* fetch 4 LSB to get roam reason */
 	roam_info->roam_reason = roam_synch_data->roamReason &
 				 ROAM_REASON_MASK;
-	sme_info("Update roam reason : %d", roam_info->roam_reason);
+	sme_debug("Update roam reason : %d", roam_info->roam_reason);
 	csr_copy_fils_join_rsp_roam_info(roam_info, roam_synch_data);
 
 	csr_roam_call_callback(mac_ctx, session_id, roam_info, 0,
