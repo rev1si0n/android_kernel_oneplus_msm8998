@@ -1272,7 +1272,10 @@ typedef struct {
 		tpSirBssDescription  bss_desc_ptr,
 		enum sir_roam_op_code reason);
 	QDF_STATUS (*pe_disconnect_cb) (tpAniSirGlobal mac,
-					uint8_t vdev_id);
+					uint8_t vdev_id,
+					uint8_t *deauth_disassoc_frame,
+					uint16_t deauth_disassoc_frame_len,
+					uint16_t reason_code);
 	QDF_STATUS (*csr_roam_pmkid_req_cb)(uint8_t vdev_id,
 		struct roam_pmkid_req_event *bss_list);
 	qdf_wake_lock_t wmi_cmd_rsp_wake_lock;
@@ -1307,6 +1310,7 @@ typedef struct {
 	qdf_atomic_t critical_events_in_flight;
 	bool enable_tx_compl_tsf64;
 	bool enable_three_way_coex_config_legacy;
+	bool bmiss_skip_full_scan;
 } t_wma_handle, *tp_wma_handle;
 
 extern void cds_wma_complete_cback(void);

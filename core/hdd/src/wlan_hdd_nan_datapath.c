@@ -647,6 +647,21 @@ int hdd_ndi_delete(uint8_t vdev_id, char *iface_name, uint16_t transaction_id)
 	return ret;
 }
 
+#ifdef WLAN_FEATURE_NAN
+static void hdd_nan_config_keep_alive_period(uint8_t vdev_id,
+					     struct hdd_context *hdd_ctx)
+{
+	sme_cli_set_command(vdev_id, WMI_VDEV_PARAM_NDP_KEEPALIVE_TIMEOUT,
+			    hdd_ctx->config->ndp_keep_alive_period, VDEV_CMD);
+}
+#else
+static inline void hdd_nan_config_keep_alive_period(
+						uint8_t vdev_id,
+						struct hdd_context *hdd_ctx)
+{
+}
+#endif
+
 void hdd_ndi_drv_ndi_create_rsp_handler(uint8_t vdev_id,
 				struct nan_datapath_inf_create_rsp *ndi_rsp)
 {
@@ -700,10 +715,7 @@ void hdd_ndi_drv_ndi_create_rsp_handler(uint8_t vdev_id,
 				    hdd_ctx->config->ndp_inactivity_timeout,
 				    VDEV_CMD);
 
-		sme_cli_set_command(vdev_id,
-				    WMI_VDEV_PARAM_NDP_KEEPALIVE_TIMEOUT,
-				    hdd_ctx->config->ndp_keep_alive_period,
-				    VDEV_CMD);
+		hdd_nan_config_keep_alive_period(vdev_id, hdd_ctx);
 	} else {
 		hdd_alert("NDI interface creation failed with reason %d",
 			ndi_rsp->reason /* create_reason */);
@@ -849,6 +861,13 @@ int hdd_ndp_new_peer_handler(uint8_t vdev_id, uint16_t sta_id,
 	/* perform following steps for first new peer ind */
 	if (fist_peer) {
 		hdd_info("Set ctx connection state to connected");
+
+		/* Disable LRO/GRO for NDI Mode */
+		if (hdd_ctx->ol_enable) {
+			hdd_info("Disable LRO/GRO in NDI Mode");
+			hdd_disable_rx_ol_in_concurrency(true);
+		}
+
 		hdd_bus_bw_compute_prev_txrx_stats(adapter);
 		hdd_bus_bw_compute_timer_start(hdd_ctx);
 		sta_ctx->conn_info.connState = eConnectionState_NdiConnected;
@@ -859,6 +878,35 @@ int hdd_ndp_new_peer_handler(uint8_t vdev_id, uint16_t sta_id,
 	qdf_mem_free(roam_info);
 	hdd_exit();
 	return 0;
+}
+
+void hdd_cleanup_ndi(struct hdd_context *hdd_ctx,
+		     struct hdd_adapter *adapter)
+{
+	struct hdd_station_ctx *sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+
+	if (sta_ctx->conn_info.connState != eConnectionState_NdiConnected) {
+		hdd_debug("NDI has no NDPs");
+		return;
+	}
+	sta_ctx->conn_info.connState = eConnectionState_NdiDisconnected;
+	hdd_conn_set_connection_state(adapter,
+		eConnectionState_NdiDisconnected);
+	hdd_info("Stop netif tx queues.");
+	wlan_hdd_netif_queue_control(adapter, WLAN_STOP_ALL_NETIF_QUEUE,
+				     WLAN_CONTROL_PATH);
+	hdd_bus_bw_compute_reset_prev_txrx_stats(adapter);
+	hdd_bus_bw_compute_timer_try_stop(hdd_ctx);
+	if (hdd_ctx->ol_enable &&
+	    ((policy_mgr_get_connection_count(hdd_ctx->psoc) == 0) ||
+	     ((policy_mgr_get_connection_count(hdd_ctx->psoc) == 1) &&
+	      (policy_mgr_mode_specific_connection_count(
+						hdd_ctx->psoc,
+						PM_STA_MODE,
+						NULL) == 1)))) {
+		hdd_info("Enable LRO/GRO");
+		hdd_disable_rx_ol_in_concurrency(false);
+	}
 }
 
 /**
@@ -906,14 +954,7 @@ void hdd_ndp_peer_departed_handler(uint8_t vdev_id, uint16_t sta_id,
 
 	if (last_peer) {
 		hdd_info("No more ndp peers.");
-		sta_ctx->conn_info.connState = eConnectionState_NdiDisconnected;
-		hdd_conn_set_connection_state(adapter,
-			eConnectionState_NdiDisconnected);
-		hdd_info("Stop netif tx queues.");
-		wlan_hdd_netif_queue_control(adapter, WLAN_STOP_ALL_NETIF_QUEUE,
-					     WLAN_CONTROL_PATH);
-		hdd_bus_bw_compute_reset_prev_txrx_stats(adapter);
-		hdd_bus_bw_compute_timer_try_stop(hdd_ctx);
+		hdd_cleanup_ndi(hdd_ctx, adapter);
 	}
 
 	hdd_exit();

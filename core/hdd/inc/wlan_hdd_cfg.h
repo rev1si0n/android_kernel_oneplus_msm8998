@@ -90,6 +90,44 @@ struct hdd_context;
 #define CFG_ENABLE_CONNECTED_SCAN_MAX         (1)
 #define CFG_ENABLE_CONNECTED_SCAN_DEFAULT     (1)
 
+/*
+ * <ini>
+ * mws_coex_pcc_channel_avoid_delay - configures the duration, when WWAN PCC
+ * (Primary Component Carrier) conflicts with WLAN channel.
+ * @Min: 0x00
+ * @Max: 0xFF
+ * @Default: 0x3C
+ *
+ * It is used to set MWS-COEX WWAN PCC channel avoidance delay
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_MWS_COEX_PCC_CHANNEL_AVOID_DELAY		"mws_coex_pcc_channel_avoid_delay"
+#define CFG_MWS_COEX_PCC_CHANNEL_AVOID_DELAY_DEFAULT	(0x3C)
+#define CFG_MWS_COEX_PCC_CHANNEL_AVOID_DELAY_MAX	(0xFF)
+#define CFG_MWS_COEX_PCC_CHANNEL_AVOID_DELAY_MIN	(0)
+
+/*
+ * <ini>
+ * mws_coex_scc_channel_avoid_delay - configures the duration, when WWAN SCC
+ * (Secondary Component Carrier) conflicts with WLAN channel.
+ * @Min: 0x00
+ * @Max: 0xFF
+ * @Default: 0x78
+ *
+ * It is used to set MWS-COEX WWAN SCC channel avoidance delay
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_MWS_COEX_SCC_CHANNEL_AVOID_DELAY "mws_coex_scc_channel_avoid_delay"
+#define CFG_MWS_COEX_SCC_CHANNEL_AVOID_DELAY_DEFAULT 0x00
+#define CFG_MWS_COEX_SCC_CHANNEL_AVOID_DELAY_MAX 0xFF
+#define CFG_MWS_COEX_SCC_CHANNEL_AVOID_DELAY_MIN 0x00
+
 #ifdef WLAN_NUD_TRACKING
 /*
  * <ini>
@@ -2020,6 +2058,47 @@ enum hdd_dot11_mode {
 #define CFG_ROAMING_OFFLOAD_MIN                 (0)
 #define CFG_ROAMING_OFFLOAD_MAX                 (1)
 #define CFG_ROAMING_OFFLOAD_DEFAULT             (1)
+
+/*
+ * <ini>
+ * roam_triggers - Bitmap of roaming triggers. Setting this to
+ * zero will disable roaming altogether for the STA interface.
+ * @Min: 0
+ * @Max: 0xFFFFFFFF
+ * @Default: 0xFFFF
+ *
+ * ROAM_TRIGGER_REASON_NONE        BIT 0
+ * ROAM_TRIGGER_REASON_PER         BIT 1
+ * ROAM_TRIGGER_REASON_BMISS       BIT 2
+ * ROAM_TRIGGER_REASON_LOW_RSSI    BIT 3
+ * ROAM_TRIGGER_REASON_HIGH_RSSI   BIT 4
+ * ROAM_TRIGGER_REASON_PERIODIC    BIT 5
+ * ROAM_TRIGGER_REASON_MAWC        BIT 6
+ * ROAM_TRIGGER_REASON_DENSE       BIT 7
+ * ROAM_TRIGGER_REASON_BACKGROUND  BIT 8
+ * ROAM_TRIGGER_REASON_FORCED      BIT 9
+ * ROAM_TRIGGER_REASON_BTM         BIT 10
+ * ROAM_TRIGGER_REASON_UNIT_TEST   BIT 11
+ * ROAM_TRIGGER_REASON_BSS_LOAD    BIT 12
+ * ROAM_TRIGGER_REASON_DEAUTH      BIT 13
+ * ROAM_TRIGGER_REASON_IDLE        BIT 14
+ * ROAM_TRIGGER_REASON_STA_KICKOUT BIT 15
+ * ROAM_TRIGGER_EXT_REASON_MAX     BIT 16
+ * Bitmap corresponds to the enum roam_trigger_reason
+ *
+ * Related: none
+ *
+ * Supported Feature: Roaming
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_ROAM_TRIGGER_BITMAP        "roam_triggers"
+#define CFG_ROAM_TRIGGER_BITMAP_MIN       0
+#define CFG_ROAM_TRIGGER_BITMAP_MAX       0xFFFFFFFF
+#define CFG_ROAM_TRIGGER_BITMAP_DEFAULT   0xFFFF
+
 #endif
 
 /*
@@ -10811,7 +10890,7 @@ enum dot11p_mode {
 #define CFG_DP_PROTO_EVENT_BITMAP		"dp_proto_event_bitmap"
 #define CFG_DP_PROTO_EVENT_BITMAP_MIN		(0x0)
 #define CFG_DP_PROTO_EVENT_BITMAP_MAX		(0x17)
-#define CFG_DP_PROTO_EVENT_BITMAP_DEFAULT	(0x6)
+#define CFG_DP_PROTO_EVENT_BITMAP_DEFAULT	(0x17)
 #endif
 
 /*
@@ -14955,9 +15034,22 @@ enum hdd_external_acs_policy {
  *
  * BIT 6: Set this to 1 will send BTM query frame and 0 not sent.
  *
- * BIT 7-31: Reserved
+ * BIT 7: Roam to BTM candidates based on the roam score instead of BTM
+ * preferred value
  *
- * Supported Feature: STA
+ * BIT 8: If AP does not support Neighbor report response, STA should
+ * request BTM query to get BTM request and check neighbor report exists
+ * or not. If Neighbor report exists, STA can use this information to update
+ * cached channel information
+ *
+ * BIT 9: When ever roaming is triggered after a successful roam scan a BTM
+ * query is sends to current connected AP which is 11v capable including the
+ * preferred candidate list obtained as part of roam scan with preference filled
+ * based on our internal scoring logic.
+ *
+ * BIT 10-31: Reserved
+ *
+ * Supported Feature: Roaming
  *
  * Usage: External
  *
@@ -14978,7 +15070,7 @@ enum hdd_external_acs_policy {
  * This ini is used to configure timeout value for waiting BTM request.
  * Unit: millionsecond
  *
- * Supported Feature: STA
+ * Supported Feature: Roaming
  *
  * Usage: External
  *
@@ -14998,7 +15090,7 @@ enum hdd_external_acs_policy {
  *
  * This ini is used to configure maximum attempt for sending BTM query to ESS.
  *
- * Supported Feature: STA
+ * Supported Feature: Roaming
  *
  * Usage: External
  *
@@ -15019,7 +15111,7 @@ enum hdd_external_acs_policy {
  * This ini is used to configure Stick time after roaming to new AP by BTM.
  * Unit: seconds
  *
- * Supported Feature: STA
+ * Supported Feature: Roaming
  *
  * Usage: External
  *
@@ -15029,6 +15121,36 @@ enum hdd_external_acs_policy {
 #define CFG_BTM_STICKY_TIME_MIN       (0x00000000)
 #define CFG_BTM_STICKY_TIME_MAX       (0x0000FFFF)
 #define CFG_BTM_STICKY_TIME_DEFAULT   (300)
+
+/*
+ * <ini>
+ * btm_query_bitmask - To send BTM query with candidate list on various roam
+ * scans reasons
+ * @Min: 0
+ * @Max: 0xFFFFFFFF
+ * @Default: 0x8
+ *
+ * This new ini is introduced to configure the bitmask for various roam scan
+ * reasons. Fw sends "BTM query with preferred candidate list" only for those
+ * roam scans which are enable through this bitmask.
+
+ * For Example:
+ * Bitmask : 0x8 (LOW_RSSI) refer enum WMI_ROAM_TRIGGER_REASON_ID
+ * Bitmask : 0xDA (PER, LOW_RSSI, HIGH_RSSI, MAWC, DENSE)
+ * refer enum WMI_ROAM_TRIGGER_REASON_ID
+ *
+ * Related: None
+ *
+ * Supported Feature: Roaming
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_BTM_QUERY_BITMASK_NAME    "btm_query_bitmask"
+#define CFG_BTM_QUERY_BITMASK_MIN     (0)
+#define CFG_BTM_QUERY_BITMASK_MAX     (0xFFFFFFFF)
+#define CFG_BTM_QUERY_BITMASK_DEFAULT (0x8)
 
 /*
  * <ini>
@@ -16635,7 +16757,7 @@ enum hdd_external_acs_policy {
  * rssi delta and if other criteria of ini "enable_idle_roam" is met
  * @Min: 0
  * @Max: 50
- * @Default: 5
+ * @Default: 3
  *
  * Related: enable_idle_roam
  *
@@ -16648,7 +16770,7 @@ enum hdd_external_acs_policy {
 #define CFG_LFR_IDLE_ROAM_RSSI_DELTA   "idle_roam_rssi_delta"
 #define CFG_LFR_IDLE_ROAM_RSSI_DELTA_MIN      (0)
 #define CFG_LFR_IDLE_ROAM_RSSI_DELTA_MAX      (50)
-#define CFG_LFR_IDLE_ROAM_RSSI_DELTA_DEFAULT  (5)
+#define CFG_LFR_IDLE_ROAM_RSSI_DELTA_DEFAULT  (3)
 
 /*
  * <ini>
@@ -16778,6 +16900,30 @@ enum hdd_external_acs_policy {
 #define CFG_ADAPTIVE_11R_MIN      (false)
 #define CFG_ADAPTIVE_11R_MAX      (true)
 #define CFG_ADAPTIVE_11R_DEFAULT  (false)
+#endif
+
+#if defined(WLAN_SAE_SINGLE_PMK) && defined(WLAN_FEATURE_ROAM_OFFLOAD)
+/*
+ * <ini>
+ * sae_single_pmk_feature_enabled - Enable/disable sae single pmk feature.
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This INI is to enable/disable SAE Roaming with same PMK/PMKID feature support
+ *
+ * Related: None
+ *
+ * Supported Feature: Roaming
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_SAE_SINGLE_PMK          "sae_single_pmk_feature_enabled"
+#define CFG_SAE_SINGLE_PMK_MIN      (false)
+#define CFG_SAE_SINGLE_PMK_MAX      (true)
+#define CFG_SAE_SINGLE_PMK_DEFAULT  (false)
 #endif
 
 /*
@@ -17303,6 +17449,241 @@ enum hdd_external_acs_policy {
 #define CFG_CONFIG_SAR_SAFETY_SLEEP_MODE_INDEX_DEFAULT   (0)
 #endif
 
+#define CFG_PKT_CAPTURE_MODE_MGMT_PKT	BIT(0)
+#define CFG_PKT_CAPTURE_MODE_DATA_PKT	BIT(1)
+
+/*
+ * <ini>
+ * packet_capture_mode - Packet capture mode
+ * @Min: 0
+ * @Max: 3
+ * Default: 0 - Capture no packets
+ *
+ * This ini is used to decide packet capture mode
+ *
+ * packet_capture_mode = 0 - Capture no packets
+ * packet_capture_mode = 1 - Capture management packets only
+ * packet_capture_mode = 2 - Capture data packets only
+ * packet_capture_mode = 3 - Capture both data and management packets
+ *
+ * Supported Feature: packet capture
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_PKT_CAPTURE_MODE		"packet_capture_mode"
+#define CFG_PKT_CAPTURE_MODE_MIN	0
+#define CFG_PKT_CAPTURE_MODE_MAX	(CFG_PKT_CAPTURE_MODE_MGMT_PKT | \
+					 CFG_PKT_CAPTURE_MODE_DATA_PKT)
+#define CFG_PKT_CAPTURE_MODE_DEFAULT	0
+
+/*
+ * <ini>
+ * disable_4way_hs_offload - Enable/Disable 4 way handshake offload to firmware
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * 0  4-way HS to be handled in firmware
+ * 1  4-way HS to be handled in supplicant
+ *
+ * Related: None
+ *
+ * Supported Feature: STA Roaming
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_DISABLE_4WAY_HS_OFFLOAD           "disable_4way_hs_offload"
+#define CFG_DISABLE_4WAY_HS_OFFLOAD_MIN       (0)
+#define CFG_DISABLE_4WAY_HS_OFFLOAD_MAX       (1)
+#define CFG_DISABLE_4WAY_HS_OFFLOAD_DEFAULT   (0)
+
+/*
+ * <ini>
+ * enable_time_sync_ftm - Time Sync FTM feature support
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0 - Disable feature
+ *
+ * When set to 1 Time Sync FTM feature will be enabled.
+ *
+ * Supported Feature: Time Sync FTM
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_ENABLE_TIME_SYNC_FTM		"enable_time_sync_ftm"
+#define CFG_ENABLE_TIME_SYNC_FTM_MIN		(0)
+#define CFG_ENABLE_TIME_SYNC_FTM_MAX		(1)
+#define CFG_ENABLE_TIME_SYNC_FTM_DEFAULT	(0)
+
+/*
+ * <ini>
+ * time_sync_ftm_mode- Time Sync FTM feature Mode configuration
+ * @Min: 0 - Aggregated Mode
+ * @Max: 1 - Burst Mode
+ * @Default: 0
+ *
+ * This ini is applicable only if enable_time_sync_ftm  is set to 1.
+ *
+ * Supported Feature: Time Sync FTM
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_TIME_SYNC_FTM_MODE			"time_sync_ftm_mode"
+#define CFG_TIME_SYNC_FTM_MODE_MIN		(0)
+#define CFG_TIME_SYNC_FTM_MODE_MAX		(1)
+#define CFG_TIME_SYNC_FTM_MODE_DEFAULT		(0)
+
+/*
+ * <ini>
+ * time_sync_ftm_role- Time Sync FTM feature Role configuration
+ * @Min: 0 - Slave Role
+ * @Max: 1 - Master Role
+ * @Default: 0
+ *
+ * This ini is applicable only if enable_time_sync_ftm is set to 1.
+ *
+ * Supported Feature: Time Sync FTM
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_TIME_SYNC_FTM_ROLE			"time_sync_ftm_role"
+#define CFG_TIME_SYNC_FTM_ROLE_MIN		(0)
+#define CFG_TIME_SYNC_FTM_ROLE_MAX		(1)
+#define CFG_TIME_SYNC_FTM_ROLE_DEFAULT		(0)
+
+/*
+ * <ini>
+ * bmiss_skip_full_scan - To decide whether firmware does channel map based
+ * partial scan or partial scan followed by full scan in case no candidate is
+ * found in partial scan.
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * 0 : Based on the channel map , firmware does scan to find new AP. if AP is
+ *     not found then it does a full scan on all valid channels.
+ * 1 : Firmware does channel map based partial scan only.
+ *
+ * Related: None
+ *
+ * Supported Feature: Roaming
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_BMISS_SKIP_FULL_SCAN               "bmiss_skip_full_scan"
+#define CFG_BMISS_SKIP_FULL_SCAN_MIN           0
+#define CFG_BMISS_SKIP_FULL_SCAN_MAX           1
+#define CFG_BMISS_SKIP_FULL_SCAN_DEFAULT       0
+
+#ifdef WLAN_FEATURE_PERIODIC_STA_STATS
+/*
+ * <ini>
+ * periodic_stats_timer_interval - Print selective stats on this specified
+ *				   interval
+ *
+ * @Min: 0
+ * @Max: 10000
+ * Default: 3000
+ *
+ * This ini is used to specify interval in milliseconds for periodic stats
+ * timer. This timer will print selective stats after expiration of each
+ * interval. STA starts this periodic timer after initial connection or after
+ * roaming is successful. This will be restarted for every
+ * periodic_stats_timer_interval till the periodic_stats_timer_duration expires.
+ *
+ * Supported Feature: STA
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_PERIODIC_STATS_TIMER_INTERVAL		"periodic_stats_timer_interval"
+#define CFG_PERIODIC_STATS_TIMER_INTERVAL_MIN		(0)
+#define CFG_PERIODIC_STATS_TIMER_INTERVAL_MAX		(10000)
+#define CFG_PERIODIC_STATS_TIMER_INTERVAL_DEFAULT	(3000)
+
+/*
+ * <ini>
+ * periodic_stats_timer_duration - Used as duration for which periodic timer
+ *				   should run
+ *
+ * @Min: 0
+ * @Max: 60000
+ * Default: 30000
+ *
+ * This ini is used as duration in milliseconds for which periodic stats timer
+ * should run. This periodic timer will print selective stats for every
+ * periodic_stats_timer_interval until this duration is reached.
+ *
+ * Supported Feature: STA
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_PERIODIC_STATS_TIMER_DURATION		"periodic_stats_timer_duration"
+#define CFG_PERIODIC_STATS_TIMER_DURATION_MIN		(0)
+#define CFG_PERIODIC_STATS_TIMER_DURATION_MAX		(60000)
+#define CFG_PERIODIC_STATS_TIMER_DURATION_DEFAULT	(30000)
+
+#endif /* WLAN_FEATURE_PERIODIC_STA_STATS */
+
+/*
+ * <ini>
+ * p2p_disable_roam- Disable Roam on sta interface during P2P connection
+ * @Min: 0 - Roam Enabled on sta interface during P2P connection
+ * @Max: 1 - Roam Disabled on sta interface during P2P connection
+ * @Default: 0
+ *
+ * Disable roaming on STA iface to avoid audio glitches on p2p if its connected
+ *
+ * Supported Feature: Disable Roam during P2P
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_P2P_DISABLE_ROAM            "p2p_disable_roam"
+#define CFG_P2P_DISABLE_ROAM_MIN         (0)
+#define CFG_P2P_DISABLE_ROAM_MAX         (1)
+#define CFG_P2P_DISABLE_ROAM_DEFAULT     (0)
+
+/*
+ * <ini>
+ * dfs_chan_ageout_time - Set DFS Channel ageout time(in seconds)
+ * @Min: 0
+ * @Max: 8
+ * Default: 0
+ *
+ * Ageout time is the time upto which DFS channel information such as beacon
+ * found is remembered. So that Firmware performs Active scan instead of the
+ * Passive to reduce the Dwell time.
+ * This ini Parameter used to set ageout timer value from host to FW.
+ * If not set, Firmware will disable ageout time.
+ *
+ * Supported Feature: STA scan in DFS channels
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_DFS_CHAN_AGEOUT_TIME		"dfs_chan_ageout_time"
+#define CFG_DFS_CHAN_AGEOUT_TIME_MIN		(0)
+#define CFG_DFS_CHAN_AGEOUT_TIME_MAX		(8)
+#define CFG_DFS_CHAN_AGEOUT_TIME_DEFAULT	(0)
+
 /*
  * Type declarations
  */
@@ -17813,8 +18194,9 @@ struct hdd_config {
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	bool isRoamOffloadEnabled;
+	uint32_t roam_triggers;
 #endif
-
+	bool bmiss_skip_full_scan;
 	uint32_t IpaUcTxBufCount;
 	uint32_t IpaUcTxBufSize;
 	uint32_t IpaUcRxIndRingCount;
@@ -18208,6 +18590,7 @@ struct hdd_config {
 	uint32_t btm_solicited_timeout;
 	uint32_t btm_max_attempt_cnt;
 	uint32_t btm_sticky_time;
+	uint32_t btm_query_bitmask;
 	uint32_t btm_trig_min_candidate_score;
 	bool gcmp_enabled;
 	bool is_11k_offload_supported;
@@ -18309,6 +18692,9 @@ struct hdd_config {
 #ifdef WLAN_ADAPTIVE_11R
 	bool enable_adaptive_11r;
 #endif
+#if defined(WLAN_SAE_SINGLE_PMK) && defined(WLAN_FEATURE_ROAM_OFFLOAD)
+	bool sae_single_pmk_feature_enabled;
+#endif
 	uint32_t num_vdevs;
 	bool ShortGI80MhzEnable;
 	bool ShortGI160MhzEnable;
@@ -18325,7 +18711,26 @@ struct hdd_config {
 	bool enable_sar_safety;
 	bool config_sar_safety_sleep_index;
 #endif
+	uint32_t pkt_capture_mode;
 
+	uint32_t mws_coex_scc_channel_avoid_delay;
+	uint32_t mws_coex_pcc_channel_avoid_delay;
+
+	bool disable_4way_hs_offload;
+#ifdef FEATURE_WLAN_TIME_SYNC_FTM
+	bool time_sync_ftm_enable;
+	bool time_sync_ftm_mode;
+	bool time_sync_ftm_role;
+#endif
+	bool p2p_disable_roam;
+
+#ifdef WLAN_FEATURE_PERIODIC_STA_STATS
+	/* Periodicity of logging */
+	uint32_t periodic_stats_timer_interval;
+	/* Duration for which periodic logging should be done */
+	uint32_t periodic_stats_timer_duration;
+#endif /* WLAN_FEATURE_PERIODIC_STA_STATS */
+	uint8_t dfs_chan_ageout_time;
 };
 
 #define VAR_OFFSET(_Struct, _Var) (offsetof(_Struct, _Var))
