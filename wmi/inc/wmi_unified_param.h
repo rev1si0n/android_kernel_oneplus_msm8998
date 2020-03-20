@@ -1997,6 +1997,8 @@ struct roam_fils_params {
  * @rct_validity_timer: duration value for which the entries in
  * roam candidate table are valid
  * @adaptve_11r: Adaptive 11r AP
+ * @is_sae_same_pmk: Flag to indicate fw whether WLAN_SAE_SINGLE_PMK feature is
+ * enable or not
  * @roam_scan_inactivity_time: inactivity monitoring time in ms for which the
  * device is considered to be inactive
  * @roam_inactive_data_packet_count: Maximum allowed data packets count during
@@ -2026,6 +2028,7 @@ struct roam_offload_scan_params {
 	bool fw_pmksa_cache;
 	uint32_t rct_validity_timer;
 	bool is_adaptive_11r;
+	bool is_sae_same_pmk;
 #endif
 	uint32_t min_delay_btw_roam_scans;
 	uint32_t roam_trigger_reason_bitmask;
@@ -2305,6 +2308,7 @@ struct scoring_param {
  * ROAM_TRIGGER_REASON_DEAUTH: Roam triggered due to deauth received from the
  * current connected AP.
  * ROAM_TRIGGER_REASON_IDLE: Roam triggered due to inactivity of the device.
+ * ROAM_TRIGGER_REASON_STA_KICKOUT: Roam triggered due to sta kickout event.
  * ROAM_TRIGGER_REASON_MAX: Maximum number of roam triggers
  */
 enum roam_trigger_reason {
@@ -2323,6 +2327,7 @@ enum roam_trigger_reason {
 	ROAM_TRIGGER_REASON_BSS_LOAD,
 	ROAM_TRIGGER_REASON_DEAUTH,
 	ROAM_TRIGGER_REASON_IDLE,
+	ROAM_TRIGGER_REASON_STA_KICKOUT,
 	ROAM_TRIGGER_REASON_MAX,
 };
 
@@ -5784,6 +5789,7 @@ typedef enum {
 	wmi_wlan_time_sync_q_master_slave_offset_eventid,
 #endif
 	wmi_roam_stats_event_id,
+	wmi_roam_scan_chan_list_id,
 	wmi_events_max,
 } wmi_conv_event_id;
 
@@ -6231,6 +6237,7 @@ typedef enum {
 	wmi_service_nan_vdev,
 	wmi_service_packet_capture_support,
 	wmi_service_time_sync_ftm,
+	wmi_roam_scan_chan_list_to_host_support,
 	wmi_services_max,
 } wmi_conv_service_ids;
 #define WMI_SERVICE_UNAVAILABLE 0xFFFF
@@ -8360,6 +8367,7 @@ struct wmi_mawc_roam_params {
  * @btm_solicited_timeout: Timeout value for waiting BTM request
  * @btm_max_attempt_cnt: Maximum attempt for sending BTM query to ESS
  * @btm_sticky_time: Stick time after roaming to new AP by BTM
+ * @btm_query_bitmask: roam trigger reasons to trigger BTM Query
  * @disassoc_timer_threshold: threshold value till which the firmware can
  * wait before triggering the roam scan after receiving the disassoc iminent
  * @btm_candidate_min_score: Minimum score of the AP to consider it as a
@@ -8371,6 +8379,7 @@ struct wmi_btm_config {
 	uint32_t btm_solicited_timeout;
 	uint32_t btm_max_attempt_cnt;
 	uint32_t btm_sticky_time;
+	uint32_t btm_query_bitmask;
 	uint32_t disassoc_timer_threshold;
 	uint32_t btm_candidate_min_score;
 };
@@ -9232,41 +9241,6 @@ struct mws_antenna_sharing_info {
 	uint32_t imbalance;
 	int32_t  mrc_threshold;
 	uint32_t grant_duration;
-};
-
-/**
- * enum roam_control_trigger_reason - Bitmap of roaming triggers
- *
- * @ROAM_TRIGGER_REASON_PER: Set if the roam has to be triggered based on
- *     a bad packet error rates (PER).
- * @ROAM_TRIGGER_REASON_BEACON_MISS: Set if the roam has to be triggered
- *     based on beacon misses from the connected AP.
- * @ROAM_TRIGGER_REASON_POOR_RSSI: Set if the roam has to be triggered
- *     due to poor RSSI of the connected AP.
- * @ROAM_TRIGGER_REASON_BETTER_RSSI: Set if the roam has to be triggered
- *     upon finding a BSSID with a better RSSI than the connected BSSID.
- *     Here the RSSI of the current BSSID need not be poor.
- * @ROAM_TRIGGER_REASON_PERIODIC: Set if the roam has to be triggered
- *     by triggering a periodic scan to find a better AP to roam.
- * @ROAM_TRIGGER_REASON_DENSE: Set if the roam has to be triggered
- *     when the connected channel environment is too noisy/congested.
- * @ROAM_TRIGGER_REASON_BTM: Set if the roam has to be triggered
- *     when BTM Request frame is received from the connected AP.
- * @ROAM_TRIGGER_REASON_BSS_LOAD: Set if the roam has to be triggered
- *     when the channel utilization is goes above the configured threshold.
- *
- * Set the corresponding roam trigger reason bit to consider it for roam
- * trigger.
- */
-enum roam_control_trigger_reason {
-	ROAM_CONTROL_TRIGGER_REASON_PER			= 1 << 0,
-	ROAM_CONTROL_TRIGGER_REASON_BEACON_MISS		= 1 << 1,
-	ROAM_CONTROL_TRIGGER_REASON_POOR_RSSI		= 1 << 2,
-	ROAM_CONTROL_TRIGGER_REASON_BETTER_RSSI		= 1 << 3,
-	ROAM_CONTROL_TRIGGER_REASON_PERIODIC		= 1 << 4,
-	ROAM_CONTROL_TRIGGER_REASON_DENSE		= 1 << 5,
-	ROAM_CONTROL_TRIGGER_REASON_BTM			= 1 << 6,
-	ROAM_CONTROL_TRIGGER_REASON_BSS_LOAD		= 1 << 7,
 };
 
 /**
