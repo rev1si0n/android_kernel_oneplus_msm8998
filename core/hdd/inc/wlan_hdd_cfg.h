@@ -10218,7 +10218,7 @@ enum dot11p_mode {
  * g_sta_sap_scc_on_lte_coex_chan - Allow STA+SAP SCC on LTE coex channel
  * @Min: 0
  * @Max: 1
- * @Default: 0
+ * @Default: 1
  *
  * This ini is used to allow STA+SAP SCC on LTE coex channel
  * 0 - Disallow STA+SAP SCC on LTE coex channel
@@ -10235,7 +10235,7 @@ enum dot11p_mode {
 #define CFG_STA_SAP_SCC_ON_LTE_COEX_CHAN              "g_sta_sap_scc_on_lte_coex_chan"
 #define CFG_STA_SAP_SCC_ON_LTE_COEX_CHAN_MIN          (0)
 #define CFG_STA_SAP_SCC_ON_LTE_COEX_CHAN_MAX          (1)
-#define CFG_STA_SAP_SCC_ON_LTE_COEX_CHAN_DEFAULT      (0)
+#define CFG_STA_SAP_SCC_ON_LTE_COEX_CHAN_DEFAULT      (1)
 
 /*
  * gPNOChannelPrediction will allow user to enable/disable the
@@ -16343,7 +16343,7 @@ enum hdd_external_acs_policy {
  * AP and roam candidate AP.
  * @Min: 0
  * @Max: 10000
- * @Default: 1850
+ * @Default: 0
  *
  * This ini is used during CU and low rssi based roam triggers, consider
  * AP as roam candidate only if its roam score is better than connected
@@ -16364,7 +16364,7 @@ enum hdd_external_acs_policy {
  * </ini>
  */
 #define CFG_CAND_MIN_ROAM_SCORE_DELTA "min_roam_score_delta"
-#define CFG_CAND_MIN_ROAM_SCORE_DELTA_DEFAULT 1850
+#define CFG_CAND_MIN_ROAM_SCORE_DELTA_DEFAULT 0
 #define CFG_CAND_MIN_ROAM_SCORE_DELTA_MAX 10000
 #define CFG_CAND_MIN_ROAM_SCORE_DELTA_MIN 0
 
@@ -17330,7 +17330,7 @@ enum hdd_external_acs_policy {
  */
 #define CFG_SAR_SAFETY_REQ_RESP_TIMEOUT          "gSarSafetyReqRespTimeout"
 #define CFG_SAR_SAFETY_REQ_RESP_TIMEOUT_MIN      (500)
-#define CFG_SAR_SAFETY_REQ_RESP_TIMEOUT_MAX      (3000)
+#define CFG_SAR_SAFETY_REQ_RESP_TIMEOUT_MAX      (1000)
 #define CFG_SAR_SAFETY_REQ_RESP_TIMEOUT_DEFAULT  (1000)
 
 /*
@@ -17356,7 +17356,7 @@ enum hdd_external_acs_policy {
  */
 #define CFG_SAR_SAFETY_REQ_RESP_RETRIES             "gSarSafetyReqRespRetry"
 #define CFG_SAR_SAFETY_REQ_RESP_RETRIES_MIN         (1)
-#define CFG_SAR_SAFETY_REQ_RESP_RETRIES_MAX         (10)
+#define CFG_SAR_SAFETY_REQ_RESP_RETRIES_MAX         (5)
 #define CFG_SAR_SAFETY_REQ_RESP_RETRIES_DEFAULT     (5)
 
 /*
@@ -17642,23 +17642,31 @@ enum hdd_external_acs_policy {
 
 /*
  * <ini>
- * p2p_disable_roam- Disable Roam on sta interface during P2P connection
- * @Min: 0 - Roam Enabled on sta interface during P2P connection
- * @Max: 1 - Roam Disabled on sta interface during P2P connection
- * @Default: 0
+ * sta_disable_roam - Disable Roam on sta interface
+ * @Min: 0 - Roam Enabled on sta interface
+ * @Max: 0xffffffff - Roam Disabled on sta interface irrespective
+ * of other interface connections
+ * @Default: 0x00
  *
- * Disable roaming on STA iface to avoid audio glitches on p2p if its connected
+ * Disable roaming on STA iface to avoid audio glitches on p2p and ndp if
+ * those are in connected state. Each bit for "sta_disable_roam" INI represents
+ * an interface for which sta roaming can be disabled.
  *
- * Supported Feature: Disable Roam during P2P
+ * LFR3_STA_ROAM_DISABLE_BY_P2P BIT(0)
+ * LFR3_STA_ROAM_DISABLE_BY_NAN BIT(1)
+ *
+ * Related: None.
+ *
+ * Supported Feature: ROAM
  *
  * Usage: Internal
  *
  * </ini>
  */
-#define CFG_P2P_DISABLE_ROAM            "p2p_disable_roam"
-#define CFG_P2P_DISABLE_ROAM_MIN         (0)
-#define CFG_P2P_DISABLE_ROAM_MAX         (1)
-#define CFG_P2P_DISABLE_ROAM_DEFAULT     (0)
+#define CFG_STA_DISABLE_ROAM            "sta_disable_roam"
+#define CFG_STA_DISABLE_ROAM_MIN         (0)
+#define CFG_STA_DISABLE_ROAM_MAX         (0XFFFFFFFF)
+#define CFG_STA_DISABLE_ROAM_DEFAULT     (0X00)
 
 /*
  * <ini>
@@ -18722,7 +18730,7 @@ struct hdd_config {
 	bool time_sync_ftm_mode;
 	bool time_sync_ftm_role;
 #endif
-	bool p2p_disable_roam;
+	uint32_t sta_disable_roam;
 
 #ifdef WLAN_FEATURE_PERIODIC_STA_STATS
 	/* Periodicity of logging */
