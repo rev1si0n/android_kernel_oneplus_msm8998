@@ -1,3 +1,4 @@
 config OEM_FORCE_DUMP
+        depends on CONFIG_QCOM_DLOAD_MODE
 	default y
 	bool "OEM force dump function, it will enable goto the force dump"

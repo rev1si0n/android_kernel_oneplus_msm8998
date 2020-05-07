@@ -34,10 +34,14 @@
 #include <linux/power_supply.h>
 #include <linux/syscalls.h>
 #include <linux/power/oem_external_fg.h>
+#ifdef CONFIG_OEM_FORCE_DUMP
 #include <linux/oem_force_dump.h>
+#endif
 #include <linux/atomic.h>
 #include <linux/param_rw.h>
+#ifdef CONFIG_OEM_DEBUG_SUPPORT
 #include <linux/oneplus/boot_mode.h>
+#endif
 
 #define PMIC_VER_8941           0x01
 #define PMIC_VERSION_REG        0x0105
@@ -848,7 +852,9 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 
 	cfg->old_state = !!key_status;
 
+#ifdef CONFIG_OEM_FORCE_DUMP
 	oem_check_force_dump_key(cfg->key_code, key_status);
+#endif
 
 	return 0;
 }
