@@ -3792,6 +3792,7 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 
 	pdata = &ctrl_pdata->panel_data;
 	init_completion(&pdata->te_done);
+	mutex_init(&pdata->te_mutex);
 	if (pdata->panel_info.type == MIPI_CMD_PANEL) {
 		if (!te_irq_registered) {
 			rc = devm_request_irq(&pdev->dev,
