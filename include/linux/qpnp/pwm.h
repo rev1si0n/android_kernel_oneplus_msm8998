@@ -155,6 +155,11 @@ int pwm_lut_config(struct pwm_device *pwm, int period_us,
 int pwm_config_us(struct pwm_device *pwm,
 		int duty_us, int period_us);
 
+/*
+ * synchronized enable of multiple pwm instances
+ */
+int pwm_enable_synchronized(struct pwm_device **pwms, size_t num);
+
 #else
 static inline int pwm_config_period(struct pwm_device *pwm,
 			     struct pwm_period_config *pwm_p)
@@ -183,12 +188,12 @@ static inline int pwm_config_us(struct pwm_device *pwm,
 {
 	return -EINVAL;
 }
-#endif
 
-/*
- * synchronized enable of multiple pwm instances
- */
-int pwm_enable_synchronized(struct pwm_device **pwms, size_t num);
+static inline int pwm_enable_synchronized(struct pwm_device **pwms, size_t num)
+{
+	return -EINVAL;
+}
+#endif
 
 /* Standard APIs supported */
 /*
