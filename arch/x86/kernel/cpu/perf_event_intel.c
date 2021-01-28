@@ -1937,7 +1937,8 @@ intel_bts_constraints(struct perf_event *event)
 
 static int intel_alt_er(int idx, u64 config)
 {
-	int alt_idx;
+	int alt_idx = idx;
+
 	if (!(x86_pmu.flags & PMU_FL_HAS_RSP_1))
 		return idx;
 
@@ -3051,7 +3052,7 @@ static int intel_snb_pebs_broken(int cpu)
 		break;
 
 	case 45: /* SNB-EP */
-		switch (cpu_data(cpu).x86_mask) {
+		switch (cpu_data(cpu).x86_stepping) {
 		case 6: rev = 0x618; break;
 		case 7: rev = 0x70c; break;
 		}

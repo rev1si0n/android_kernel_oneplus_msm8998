@@ -150,7 +150,7 @@ struct mlx4_func_cap {
 	u32	qp1_proxy_qpn;
 	u32	reserved_lkey;
 	u8	physical_port;
-	u8	port_flags;
+	u8	flags0;
 	u8	flags1;
 	u64	phys_port_id;
 	u32	extra_flags;
@@ -184,8 +184,8 @@ struct mlx4_init_hca_param {
 	u64 cmpt_base;
 	u64 mtt_base;
 	u64 global_caps;
-	u16 log_mc_entry_sz;
-	u16 log_mc_hash_sz;
+	u8 log_mc_entry_sz;
+	u8 log_mc_hash_sz;
 	u16 hca_core_clock; /* Internal Clock Frequency (in MHz) */
 	u8  log_num_qps;
 	u8  log_num_srqs;

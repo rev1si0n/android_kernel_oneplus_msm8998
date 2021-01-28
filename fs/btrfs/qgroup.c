@@ -462,6 +462,7 @@ next2:
 			break;
 	}
 out:
+	btrfs_free_path(path);
 	fs_info->qgroup_flags |= flags;
 	if (!(fs_info->qgroup_flags & BTRFS_QGROUP_STATUS_FLAG_ON)) {
 		fs_info->quota_enabled = 0;
@@ -470,7 +471,6 @@ out:
 		   ret >= 0) {
 		ret = qgroup_rescan_init(fs_info, rescan_progress, 0);
 	}
-	btrfs_free_path(path);
 
 	if (ret < 0) {
 		ulist_free(fs_info->qgroup_ulist);
@@ -2288,8 +2288,10 @@ out:
 	}
 	btrfs_put_tree_mod_seq(fs_info, &tree_mod_seq_elem);
 
-	if (done && !ret)
+	if (done && !ret) {
 		ret = 1;
+		fs_info->qgroup_rescan_progress.objectid = (u64)-1;
+	}
 	return ret;
 }
 

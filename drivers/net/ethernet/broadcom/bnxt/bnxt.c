@@ -4250,6 +4250,10 @@ static void bnxt_del_napi(struct bnxt *bp)
 		napi_hash_del(&bnapi->napi);
 		netif_napi_del(&bnapi->napi);
 	}
+	/* We called napi_hash_del() before netif_napi_del(), we need
+	 * to respect an RCU grace period before freeing napi structures.
+	 */
+	synchronize_net();
 }
 
 static void bnxt_init_napi(struct bnxt *bp)
@@ -4306,9 +4310,7 @@ static void bnxt_tx_disable(struct bnxt *bp)
 			bnapi = bp->bnapi[i];
 			txr = &bnapi->tx_ring;
 			txq = netdev_get_tx_queue(bp->dev, i);
-			__netif_tx_lock(txq, smp_processor_id());
 			txr->dev_state = BNXT_DEV_STATE_CLOSING;
-			__netif_tx_unlock(txq);
 		}
 	}
 	/* Stop all TX queues */
@@ -4610,18 +4612,18 @@ static int __bnxt_open_nic(struct bnxt *bp, bool irq_re_init, bool link_re_init)
 		}
 	}
 
-	bnxt_enable_napi(bp);
-
 	rc = bnxt_init_nic(bp, irq_re_init);
 	if (rc) {
 		netdev_err(bp->dev, "bnxt_init_nic err: %x\n", rc);
-		goto open_err;
+		goto open_err_irq;
 	}
+
+	bnxt_enable_napi(bp);
 
 	if (link_re_init) {
 		rc = bnxt_update_phy_setting(bp);
 		if (rc)
-			goto open_err;
+			netdev_warn(bp->dev, "failed to update phy settings\n");
 	}
 
 	if (irq_re_init) {
@@ -4641,9 +4643,6 @@ static int __bnxt_open_nic(struct bnxt *bp, bool irq_re_init, bool link_re_init)
 	mod_timer(&bp->timer, jiffies + bp->current_interval);
 
 	return 0;
-
-open_err:
-	bnxt_disable_napi(bp);
 
 open_err_irq:
 	bnxt_del_napi(bp);
@@ -5199,7 +5198,8 @@ static int bnxt_init_board(struct pci_dev *pdev, struct net_device *dev)
 	if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64)) != 0 &&
 	    dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32)) != 0) {
 		dev_err(&pdev->dev, "System does not support DMA, aborting\n");
-		goto init_err_disable;
+		rc = -EIO;
+		goto init_err_release;
 	}
 
 	pci_set_master(pdev);
@@ -5310,13 +5310,13 @@ static int bnxt_change_mtu(struct net_device *dev, int new_mtu)
 		return -EINVAL;
 
 	if (netif_running(dev))
-		bnxt_close_nic(bp, false, false);
+		bnxt_close_nic(bp, true, false);
 
 	dev->mtu = new_mtu;
 	bnxt_set_ring_params(bp);
 
 	if (netif_running(dev))
-		return bnxt_open_nic(bp, false, false);
+		return bnxt_open_nic(bp, true, false);
 
 	return 0;
 }
